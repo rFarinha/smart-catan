@@ -5,24 +5,24 @@
 #include "WebHandlers.h"
 #include "LedStripControl.h"
 
-void startServer(WebServer &server, BoardConfig &boardConfig, String htmlPage, Adafruit_NeoPixel &strip, int currentNumLeds)
+void startServer(WebServer &server, ServerContext &serverCtx)
 {
     // Set up server routes
-    server.on("/", HTTP_GET, [&server, &htmlPage]()
-              { handleRoot(server, htmlPage); });
+    server.on("/", HTTP_GET, [&server, &serverCtx]()
+              { handleRoot(server, serverCtx.htmlPage); });
     // Endpoints for updating settings:
-    server.on("/eightSixCanTouch", HTTP_GET, [&server, &boardConfig]()
-              { handleUpdateEightSixCanTouch(server, boardConfig); });
-    server.on("/twoTwelveCanTouch", HTTP_GET, [&server, &boardConfig]()
-              { handleUpdateTwoTwelveCanTouch(server, boardConfig); });
-    server.on("/sameNumbersCanTouch", HTTP_GET, [&server, &boardConfig]()
-              { handleUpdateSameNumbersCanTouch(server, boardConfig); });
-    server.on("/sameResourceCanTouch", HTTP_GET, [&server, &boardConfig]()
-              { handleUpdateSameResourceCanTouch(server, boardConfig); });
+    server.on("/eightSixCanTouch", HTTP_GET, [&server, &serverCtx]()
+              { handleUpdateEightSixCanTouch(server, *serverCtx.boardConfig); });
+    server.on("/twoTwelveCanTouch", HTTP_GET, [&server, &serverCtx]()
+              { handleUpdateTwoTwelveCanTouch(server, *serverCtx.boardConfig); });
+    server.on("/sameNumbersCanTouch", HTTP_GET, [&server, &serverCtx]()
+              { handleUpdateSameNumbersCanTouch(server, *serverCtx.boardConfig); });
+    server.on("/sameResourceCanTouch", HTTP_GET, [&server, &serverCtx]()
+              { handleUpdateSameResourceCanTouch(server, *serverCtx.boardConfig); });
 
     // Endpoints for Classic and Expansion buttons
-    server.on("/setClassic", HTTP_GET, [&server, &boardConfig, &strip, &currentNumLeds]()
-              { handleSetClassic(server, boardConfig, strip, currentNumLeds); });
+    server.on("/setClassic", HTTP_GET, [&server, &serverCtx]()
+              { handleSetClassic(server, *serverCtx.boardConfig, *serverCtx.ledStripControl); });
 
     // Start server
     server.begin();
@@ -76,22 +76,20 @@ void handleRoot(WebServer &server, String htmlPage)
 }
 
 // Set game as Classic
-void handleSetClassic(WebServer &server, BoardConfig &boardConfig, Adafruit_NeoPixel &strip, int currentNumLeds)
+void handleSetClassic(WebServer &server, BoardConfig &boardConfig, LEDStripControl ledStripControl)
 {
     Serial.println("[/setclassic] Request received. Setting game as classic");
     boardConfig.isExpansion = false;
 
     // Only reinitialize led strip if the current count is not already 19
-    if (currentNumLeds != 19)
+    if (ledStripControl.getNumLeds() != 19)
     {
-        currentNumLeds = 19;
-
-        // Clean up the old LED strip object and create again
-        restartLedStrip(*strip);
+        // This calls restart() internally
+        ledStripControl.setNumLeds(19);  
     }
 
     // Shuffle
-    board = generateBoard(boardConfig);
+    Board board = generateBoard(boardConfig);
 
     Serial.println("RESOURCES:");
     for (int i = 0; i < 19; i++)
@@ -107,6 +105,7 @@ void handleSetClassic(WebServer &server, BoardConfig &boardConfig, Adafruit_NeoP
     }
 }
 
+/*
 // Set game as Expansion
 void handleSetExpansion()
 {
@@ -121,4 +120,4 @@ void handleSetExpansion()
         // Clean up the old LED strip object
         restartLedStrip();
     }
-}
+}*/

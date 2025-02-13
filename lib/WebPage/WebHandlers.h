@@ -3,10 +3,18 @@
 
 #include <Arduino.h>
 #include <WebServer.h>
-#include <Adafruit_NeoPixel.h>
+#include "LedStripControl.h"
 #include "BoardGenerator.h"
 
-void startServer(WebServer &server, BoardConfig &boardConfig, String htmlPage, Adafruit_NeoPixel &strip, int currentNumLeds);
+
+// Context struct for the server handlers.
+struct ServerContext {
+    BoardConfig *boardConfig;
+    String htmlPage;
+    LEDStripControl *ledStripControl;
+};
+
+void startServer(WebServer &server, ServerContext &serverCtx);
 
 // Update Config: 6 & 8 Can Touch
 void handleUpdateEightSixCanTouch(WebServer &server, BoardConfig &boardConfig);
@@ -19,5 +27,9 @@ void handleUpdateSameNumbersCanTouch(WebServer &server, BoardConfig &boardConfig
 
 // Update Config: Same Resource Can Touch
 void handleUpdateSameResourceCanTouch(WebServer &server, BoardConfig &boardConfig);
+
+void handleRoot(WebServer &server, String htmlPage);
+
+void handleSetClassic(WebServer &server, BoardConfig &boardConfig, LEDStripControl ledStripControl);
 
 #endif
