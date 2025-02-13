@@ -1,0 +1,170 @@
+body {
+font-family: Arial, sans-serif;
+margin: 0; 
+padding: 0;
+display: flex;
+flex-direction: column;
+align-items: center;
+}
+h1, p {
+margin: 20px;
+}
+.top-buttons {
+display: flex;
+justify-content: center;
+align-items: center;
+gap: 10px;
+margin-bottom: 20px;
+}
+button {
+font-size: 16px;
+padding: 10px;
+cursor: pointer;
+border: none;
+border-radius: 4px;
+background: #2f74c0;
+color: #fff;
+}
+button:hover {
+background: #1f4e80;
+}
+.gear-button {
+background-color: #990000;
+border: none;
+padding: 10px;
+cursor: pointer;
+font-size: 16px;
+}
+/* Board layout */
+.board {
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+margin-top: 10px;
+margin-bottom: 20px;
+}
+.row {
+display: flex;
+justify-content: center;
+align-items: center;
+margin: 0px 0;
+}
+.hex {
+width: 100px;
+height: 100px;
+clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+display: flex;
+justify-content: center;
+align-items: center;
+font-size: 18px;
+font-weight: bold;
+margin: -18px 3px 0px 3px;
+color: #333;
+}
+.light-green { background-color: #90EE90; }
+.grey         { background-color: #D3D3D3; }
+.brick        { background-color: #B22222; }
+.yellow       { background-color: #FFD700; }
+.dark-green   { background-color: #006400; }
+.desert       { background-color: #F0E68C; }
+.red          { color: red; }
+
+@media (max-width: 600px) {
+.hex {
+    width: 60px;
+    height: 60px;
+    font-size: 14px;
+    margin: -10px 3px 0px 3px;
+}
+}
+
+.start-game-btn {
+font-size: 16px;
+padding: 10px;
+cursor: pointer;
+border: none;
+border-radius: 4px;
+background: #28a745;
+color: #fff;
+margin-bottom: 10px;
+}
+.start-game-btn:hover {
+background: #218838;
+}
+
+/* Number Buttons (2..12) */
+#numberButtons {
+display: none;
+margin-bottom: 30px;
+}
+#numberButtons button {
+margin: 5px;
+background: #555;
+color: #fff;
+border-radius: 4px;
+}
+#numberButtons button:hover {
+background: #333;
+}
+/* Basic modal for Settings (unchanged) */
+.modal {
+display: none;
+position: fixed;
+z-index: 999;
+left: 0; top: 0;
+width: 100%; height: 100%;
+background-color: rgba(0, 0, 0, 0.5);
+}
+.modal-content {
+position: relative;
+background-color: #fff;
+margin: 10% auto;
+padding: 20px;
+border-radius: 5px;
+width: 90%;
+max-width: 400px;
+box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.close-btn {
+margin-top: 20px; 
+background: #eee;
+color: #333;
+border: none;
+cursor: pointer;
+padding: 10px;
+border-radius: 4px;
+}
+.switch {
+position: relative;
+display: inline-block;
+width: 42px; height: 24px;
+margin-right: 10px;
+vertical-align: middle;
+}
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+position: absolute; cursor: pointer;
+top: 0; left: 0; right: 0; bottom: 0;
+background-color: #ccc;
+transition: 0.4s;
+border-radius: 34px;
+}
+.slider:before {
+position: absolute; content: "";
+height: 16px; width: 16px;
+left: 4px; bottom: 4px;
+background-color: white;
+transition: 0.4s;
+border-radius: 50%;
+}
+input:checked + .slider {
+background-color: #2196F3;
+}
+input:checked + .slider:before {
+transform: translateX(18px);
+}
+.toggle-label {
+vertical-align: middle;
+font-size: 14px;
+}
