@@ -1,91 +1,91 @@
 <!DOCTYPE HTML>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catan Board Generator</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/main.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catan Board Generator</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/main.css">
 </head>
 <body>
-    <h1>Catan Board Game Generator</h1>
-    <p>Choose Classic or Expansion.</p>
+  <h1>Catan Board Game Generator</h1>
+  <p>Choose Classic or Expansion.</p>
 
-    <!-- Classic,  Expansion and Settings button -->
-    <div class="top-buttons">
-        <button onclick="setClassic()">Classic</button>
-        <button onclick="setExpansion()">Expansion</button>
-        <button class="gear-button" id="openSettingsBtn">
-            <i class="fas fa-cog"></i>
-        </button>
-    </div>
+  <!-- Mode Buttons and Settings -->
+  <div class="top-buttons">
+      <button id="classicBtn" onclick="setClassic()">Classic</button>
+      <button id="expansionBtn" onclick="setExpansion()">Expansion</button>
+      <button class="gear-button" id="openSettingsBtn">
+          <i class="fas fa-cog"></i>
+      </button>
+  </div>
 
-    <!-- Board Container -->
-    <div class="board" id="board"></div>
+  <!-- Board Container -->
+  <div class="board" id="board"></div>
 
-    <!-- Start Game Button -->
-    <button class="start-game-btn" onclick="startGame()">Start Game</button>
+  <!-- Start Game Button -->
+  <button class="start-game-btn" onclick="startGame()">Start Game</button>
 
-    <!-- 2..12 Buttons (hidden until Start Game is pressed) -->
-    <div id="numberButtons">
-        <button onclick="selectNumber(2)">2</button>
-        <button onclick="selectNumber(3)">3</button>
-        <button onclick="selectNumber(4)">4</button>
-        <button onclick="selectNumber(5)">5</button>
-        <button onclick="selectNumber(6)">6</button>
-        <button onclick="selectNumber(7)">7</button>
-        <button onclick="selectNumber(8)">8</button>
-        <button onclick="selectNumber(9)">9</button>
-        <button onclick="selectNumber(10)">10</button>
-        <button onclick="selectNumber(11)">11</button>
-        <button onclick="selectNumber(12)">12</button>
-    </div>
+  <!-- Number Buttons (initially hidden) -->
+  <div id="numberButtons" style="display:none;">
+      <button onclick="selectNumber(2)">2</button>
+      <button onclick="selectNumber(3)">3</button>
+      <button onclick="selectNumber(4)">4</button>
+      <button onclick="selectNumber(5)">5</button>
+      <button onclick="selectNumber(6)">6</button>
+      <button onclick="selectNumber(7)">7</button>
+      <button onclick="selectNumber(8)">8</button>
+      <button onclick="selectNumber(9)">9</button>
+      <button onclick="selectNumber(10)">10</button>
+      <button onclick="selectNumber(11)">11</button>
+      <button onclick="selectNumber(12)">12</button>
+  </div>
 
-    <!-- Roll dice button (hidden ultil Start Game is pressed)-->
-    <button class="dice-roll-btn" onclick="rollDice()">
-        <i class="fa-solid fa-dice"></i>
-    </button>
+  <!-- Roll Dice Button (if needed) -->
+  <button class="dice-roll-btn" onclick="rollDice()">
+      <i class="fa-solid fa-dice"></i>
+  </button>
 
-    <!-- SETTINGS MODAL -->
-    <div id="settingsModal" class="modal">
-        <div class="modal-content">
-            <h2>Settings</h2>
+  <!-- SETTINGS MODAL -->
+  <div id="settingsModal" class="modal">
+      <div class="modal-content">
+          <h2>Settings</h2>
 
-            <!-- 6&8 can touch slider -->
-            <label class="switch">
-                <input type="checkbox" id="option1" checked>
-                <span class="slider"></span>
-            </label>
-            <span class="toggle-label">6 & 8 Can Touch</span>
-            <br><br>
-            
-            <!-- 2&12 can touch slider -->
-            <label class="switch">
-                <input type="checkbox" id="option2" checked>
-                <span class="slider"></span>
-            </label>
-            <span class="toggle-label">2 & 12 Can Touch</span>
-            <br><br>
-            
-            <!-- Same numbers can touch slider -->
-            <label class="switch">
-            <input type="checkbox" id="option3" checked>
-            <span class="slider"></span>
-            </label>
-            <span class="toggle-label">Same Numbers Can Touch</span>
-            <br><br>
-            
-            <!-- Same resources can touch slider -->
-            <label class="switch">
-            <input type="checkbox" id="option4" checked>
-            <span class="slider"></span>
-            </label>
-            <span class="toggle-label">Same Resource Can Touch</span>
-            <br><br>
+          <!-- 6 & 8 Can Touch Slider -->
+          <label class="switch">
+              <input type="checkbox" id="option1" checked>
+              <span class="slider"></span>
+          </label>
+          <span class="toggle-label">6 & 8 Can Touch</span>
+          <br><br>
+          
+          <!-- 2 & 12 Can Touch Slider -->
+          <label class="switch">
+              <input type="checkbox" id="option2" checked>
+              <span class="slider"></span>
+          </label>
+          <span class="toggle-label">2 & 12 Can Touch</span>
+          <br><br>
+          
+          <!-- Same Numbers Can Touch Slider -->
+          <label class="switch">
+              <input type="checkbox" id="option3" checked>
+              <span class="slider"></span>
+          </label>
+          <span class="toggle-label">Same Numbers Can Touch</span>
+          <br><br>
+          
+          <!-- Same Resources Can Touch Slider -->
+          <label class="switch">
+              <input type="checkbox" id="option4" checked>
+              <span class="slider"></span>
+          </label>
+          <span class="toggle-label">Same Resource Can Touch</span>
+          <br><br>
 
-            <button class="close-btn" id="closeSettingsBtn">Close</button>
-        </div>
-    </div>
-    <script src="/js/scripts.js"></script>
+          <button class="close-btn" id="closeSettingsBtn">Close</button>
+      </div>
+  </div>
+  <script src="/js/scripts.js"></script>
 </body>
 </html>

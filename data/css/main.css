@@ -62,11 +62,11 @@ font-weight: bold;
 margin: -18px 3px 0px 3px;
 color: #333;
 }
-.light-green { background-color: #90EE90; }
-.grey         { background-color: #D3D3D3; }
+.sheep { background-color: #90EE90; }
+.ore         { background-color: #D3D3D3; }
 .brick        { background-color: #B22222; }
-.yellow       { background-color: #FFD700; }
-.dark-green   { background-color: #006400; }
+.wheat      { background-color: #FFD700; }
+.wood   { background-color: #006400; }
 .desert       { background-color: #F0E68C; }
 .red          { color: red; }
 
@@ -77,6 +77,17 @@ color: #333;
     font-size: 14px;
     margin: -10px 3px 0px 3px;
 }
+}
+
+/* Shift the row with the offset class right by half a hexagon's width */
+.row.offset {
+  transform: translateX(50px);
+}
+
+@media (max-width: 600px) {
+  .row.offset {
+    transform: translateX(30px);
+  }
 }
 
 .start-game-btn {
@@ -167,4 +178,10 @@ transform: translateX(18px);
 .toggle-label {
 vertical-align: middle;
 font-size: 14px;
+}
+
+button:disabled {
+  background-color: #ccc;  /* light grey */
+  color: #888;             /* muted text */
+  cursor: not-allowed;     /* shows a not-allowed cursor */
 }

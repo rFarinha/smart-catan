@@ -7,8 +7,9 @@
 // Helper function: Shuffles a vector using the Fisher-Yates algorithm.
 void shuffleVector(std::vector<int> &vec)
 {
-    std::random_device rd;
-    std::mt19937 g(rd());
+    // Use a static random engine so it's seeded only once.
+    static std::random_device rd;
+    static std::mt19937 g(rd());
     for (int i = vec.size() - 1; i > 0; i--)
     {
         std::uniform_int_distribution<> dis(0, i);
