@@ -1,3 +1,22 @@
+:root {
+  /* The widest row in expansion mode has 6.5 hexes */
+  --max-hex-count: 6.5;
+  /* Any horizontal padding for the board (total, e.g., left + right) */
+  --board-padding: 20px;
+  /* Fixed horizontal margin per side on each hex */
+  --hex-horizontal-margin: 3px;
+  /* Extra space taken up by horizontal margins:
+     Each hex contributes 2*margin, so for 6.5 hexes: 6.5 * (2 * 3px) = 39px */
+  --hex-extra-space: calc(var(--max-hex-count) * 2 * var(--hex-horizontal-margin));
+  /* Calculate hex size:
+     Use the smaller of viewport width and 600px,
+     subtract the board padding and extra space from margins,
+     then divide by the number of hexes in the widest row.
+     Clamp to a minimum of 40px and a maximum of 100px. */
+  --hex-size: clamp(20px, calc((min(100vw, 600px) - var(--board-padding) - var(--hex-extra-space)) / var(--max-hex-count)), 100px);
+}
+
+
 body {
 font-family: Arial, sans-serif;
 margin: 0; 
@@ -36,32 +55,40 @@ cursor: pointer;
 font-size: 16px;
 }
 /* Board layout */
+.board-wrapper {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
+  overflow-x: hidden;
+}
+
 .board {
-display: flex;
-flex-direction: column;
-justify-content: center;
-align-items: center;
-margin-top: 10px;
-margin-bottom: 20px;
+  display: inline-block;
+  margin: 20px auto;
+  flex-direction: column;
+  align-items: center;
 }
 .row {
-display: flex;
-justify-content: center;
-align-items: center;
-margin: 0px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0px 0;
 }
 .hex {
-width: 100px;
-height: 100px;
-clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-display: flex;
-justify-content: center;
-align-items: center;
-font-size: 18px;
-font-weight: bold;
-margin: -18px 3px 0px 3px;
-color: #333;
+  width: var(--hex-size);
+  height: var(--hex-size);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: calc(var(--hex-size) / 5);
+  font-weight: bold;
+  /* Use the horizontal margin variable here */
+  margin: calc(-0.18 * var(--hex-size)) var(--hex-horizontal-margin) 0 var(--hex-horizontal-margin);
+  color: #333;
 }
+
 .sheep { background-color: #90EE90; }
 .ore         { background-color: #D3D3D3; }
 .brick        { background-color: #B22222; }
@@ -69,25 +96,16 @@ color: #333;
 .wood   { background-color: #006400; }
 .desert       { background-color: #F0E68C; }
 .red          { color: red; }
+.black          { color: rgb(0, 0, 0); }
 
-@media (max-width: 600px) {
-.hex {
-    width: 60px;
-    height: 60px;
-    font-size: 14px;
-    margin: -10px 3px 0px 3px;
-}
+/* Shift the row with the offset class right by half a hexagon's width */
+.row.offsetRight {
+  transform: translateX(calc(0.275 * var(--hex-size)));
 }
 
 /* Shift the row with the offset class right by half a hexagon's width */
-.row.offset {
-  transform: translateX(50px);
-}
-
-@media (max-width: 600px) {
-  .row.offset {
-    transform: translateX(30px);
-  }
+.row.offsetLeft {
+  transform: translateX(calc(-0.275 * var(--hex-size)));
 }
 
 .start-game-btn {

@@ -1,3 +1,9 @@
+// TODO Website clean functions
+// TODO Save all settings to Flash so when power is off
+// FIXME change all expansion names to extension
+// TODO Send all led related things to a library
+// TODO Led animation when robber and before game start
+
 // External
 #include <Arduino.h>
 #include <WebServer.h>
@@ -9,6 +15,13 @@
 #include "BoardGenerator.h"
 #include "password.h"
 #include "WebPage.h"
+
+// Increase this value if you continue to get stack overflows.
+#define BOARD_GEN_STACK_SIZE 8192
+#define BOARD_GEN_TASK_PRIORITY 1
+#define BOARD_GEN_TASK_CORE 1 // or 0, depending on your design
+
+volatile bool boardReady = false; // global flag
 
 // ------------- WIFI Credentials -------------
 #ifndef PASSWORD_H
@@ -22,14 +35,15 @@ const char *WIFI_PASS = "PlaceholderPassword";
 #define LED_COUNT_CLASSIC 19
 #define LED_COUNT_EXPANSION 30
 Adafruit_NeoPixel *strip = nullptr; // Declare a pointer for our LED strip
+int selectedNumber = 0;
 
 //---------------SETTINGS----------------------
-bool eight_six_canTouch = true;
-bool two_twelve_canTouch = true;
-bool sameNumbers_canTouch = true;
-bool sameResource_canTouch = true;
+#define DEFAULT_EIGHT_SIX_CANTOUCH true
+#define DEFAULT_TWO_TWELVE_CANTOUCH true
+#define DEFAULT_SAMENUMBERS_CANTOUCH true
+#define DEFAULT_SAMERESOURCE_CANTOUCH true
+#define DEFAULT_IS_EXPANSION false
 
-bool is_expansion = false;
 bool gameStarted = false;
 
 // ------------- WEB SERVER -------------------
@@ -90,9 +104,22 @@ void restartLedStrip(int numLed)
   strip->setBrightness(50);
 }
 
+void turnOffAllLeds()
+{
+  // Determine how many tiles to check (19 for classic, 30 for expansion)
+  int tileCount = boardConfig.isExpansion ? 30 : 19;
+
+  // Loop through each tile on the board.
+  for (int tile = 0; tile < tileCount; tile++)
+  {
+    strip->setPixelColor(tile, 0);
+  }
+}
+
 //---------------------------------------------------------------
 //                 UTILS
 //---------------------------------------------------------------
+
 String generateJSON()
 {
   // Create a JSON document.
@@ -127,6 +154,15 @@ String generateJSON()
   doc["expansion"] = boardConfig.isExpansion;
   doc["gameStarted"] = gameStarted;
 
+  // Include the game settings
+  doc["eightSixCanTouch"] = boardConfig.eightSixCanTouch;
+  doc["twoTwelveCanTouch"] = boardConfig.twoTwelveCanTouch;
+  doc["sameNumbersCanTouch"] = boardConfig.sameNumbersCanTouch;
+  doc["sameResourceCanTouch"] = boardConfig.sameResourceCanTouch;
+
+  // Include Turn on led
+  doc["selectedNumber"] = selectedNumber;
+
   // Serialize the JSON document to a string.
   String jsonResponse;
   serializeJson(doc, jsonResponse);
@@ -137,6 +173,48 @@ String generateJSON()
 // --------------------------------------------------------------
 //                  SERVER HANDLERS
 // --------------------------------------------------------------
+// This task runs board generation in its own FreeRTOS task.
+void boardGenerationTask(void *pvParameters)
+{
+  // This example task simply generates a new board once.
+  // You could later add a loop if you need to re-generate boards on demand.
+  Serial.println("Board generation task started.");
+
+  // For example, use the current boardConfig to generate a board.
+  board = generateBoard(boardConfig);
+
+  // You could now signal that the board is ready, update LEDs, etc.
+  Serial.println("Board generation complete.");
+  boardReady = true;
+
+  // Delete the task when finished if it's a one-off.
+  vTaskDelete(NULL);
+}
+
+void createBoardTask()
+{
+  // Reset flag and create the board generation task
+  if (boardReady)
+  {
+    boardReady = false;
+    xTaskCreatePinnedToCore(
+        boardGenerationTask,
+        "BoardGenTask",
+        8192, // Increased stack size
+        NULL,
+        1, // Priority
+        NULL,
+        1 // Run on core 1 (adjust if needed)
+    );
+
+    // Wait until the board generation task is done.
+    // (Be cautious with long delays; adjust timeout as needed.)
+    while (!boardReady)
+    {
+      delay(10); // Yield to other tasks
+    }
+  }
+}
 
 // Serve the main HTML page
 void handleRoot()
@@ -196,8 +274,7 @@ void handleSetClassic()
     restartLedStrip(LED_COUNT_CLASSIC);
   }
 
-  // Generate the board using the classic configuration
-  board = generateBoard(boardConfig);
+  createBoardTask();
 
   // Generate the json data to send to the webpage
   String jsonResponse = generateJSON();
@@ -220,8 +297,7 @@ void handleSetExpansion()
     restartLedStrip(LED_COUNT_EXPANSION);
   }
 
-  // Generate the board using the expansion configuration.
-  board = generateBoard(boardConfig);
+  createBoardTask();
 
   // Generate the json data to send to the webpage
   String jsonResponse = generateJSON();
@@ -240,7 +316,7 @@ void handleGetBoard()
   // If board hasn't been generated yet, generate one.
   if (board.resources.size() == 0)
   {
-    board = generateBoard(boardConfig);
+    createBoardTask();
   }
   int totalHexes = boardConfig.isExpansion ? 30 : 19;
 
@@ -275,6 +351,9 @@ void handleEndGame()
 {
   Serial.println("[/endgame] Request received. Ending game.");
   gameStarted = false;
+  selectedNumber = 0;
+
+  turnOffAllLeds();
 
   // Generate the json data to send to the webpage
   String jsonResponse = generateJSON();
@@ -291,7 +370,7 @@ void handleSelectNumber()
 {
   // Get the number sent from the client
   String value = server.arg("value");
-  int selectedNumber = value.toInt();
+  selectedNumber = value.toInt();
   Serial.print("[/selectNumber] Number selected: ");
   Serial.println(selectedNumber);
 
@@ -359,11 +438,11 @@ void setup()
   randomSeed(micros());
 
   // Initialize board default values
-  boardConfig.isExpansion = false;
-  boardConfig.eightSixCanTouch = true;
-  boardConfig.twoTwelveCanTouch = true;
-  boardConfig.sameNumbersCanTouch = true;
-  boardConfig.sameResourceCanTouch = true;
+  boardConfig.isExpansion = DEFAULT_IS_EXPANSION;
+  boardConfig.eightSixCanTouch = DEFAULT_EIGHT_SIX_CANTOUCH;
+  boardConfig.twoTwelveCanTouch = DEFAULT_TWO_TWELVE_CANTOUCH;
+  boardConfig.sameNumbersCanTouch = DEFAULT_SAMENUMBERS_CANTOUCH;
+  boardConfig.sameResourceCanTouch = DEFAULT_SAMERESOURCE_CANTOUCH;
 
   // Initialize LED strip with currentNumLeds
   restartLedStrip(LED_COUNT_CLASSIC);
@@ -383,6 +462,17 @@ void setup()
   server.on("/startgame", HTTP_GET, handleStartGame);
   server.on("/endgame", HTTP_GET, handleEndGame);
   server.on("/selectNumber", HTTP_GET, handleSelectNumber);
+
+  // Create the board generation task on the specified core with an increased stack size.
+  xTaskCreatePinnedToCore(
+      boardGenerationTask,     // Task function.
+      "BoardGenTask",          // Name of task.
+      BOARD_GEN_STACK_SIZE,    // Stack size in words.
+      NULL,                    // Task input parameter.
+      BOARD_GEN_TASK_PRIORITY, // Task priority.
+      NULL,                    // Task handle.
+      BOARD_GEN_TASK_CORE      // Core where the task should run.
+  );
 
   // Start server
   server.begin();

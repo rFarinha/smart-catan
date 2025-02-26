@@ -6,8 +6,19 @@ let two_twelve_canTouch = true;
 let sameNumbers_canTouch = true;
 let sameResource_canTouch = true;
 
+let currentSelectedNumber = 0;
+
 // Elements
-var numberButtons, classicBtn, expansionBtn, openSettingsBtn, option1, option2, option3, option4, settingsModa, openSettingsBtn, closeSettingsBtn
+var numberButtons,
+  classicBtn,
+  expansionBtn,
+  openSettingsBtn,
+  option1,
+  option2,
+  option3,
+  option4,
+  settingsModa,
+  closeSettingsBtn
 
 // -------------- Get Board from Server --------------
 function getBoard() {
@@ -15,7 +26,7 @@ function getBoard() {
     .then(response => response.json())
     .then(data => {
       expansion = data.expansion;
-      gameStarted = data.gameStarted;
+      currentSelectedNumber = data.selectedNumber;
       updateStates(data);
     })
     .catch(err => console.error("Error fetching board:", err));
@@ -35,7 +46,7 @@ function updateStates(data) {
     expansionBtn.textContent = "Expansion";
   }
   // Disable buttons if game as started
-  if (gameStarted) {
+  if (data.gameStarted) {
     // Show number buttons and disable mode/options.
     numberButtons.style.display = "block";
     classicBtn.disabled = true;
@@ -58,6 +69,10 @@ function updateStates(data) {
     option4.disabled = false;
     startGameBtn.textContent = "Start Game";
   }
+  option1.checked = data.eightSixCanTouch;
+  option2.checked = data.twoTwelveCanTouch;
+  option3.checked = data.sameNumbersCanTouch;
+  option4.checked = data.sameResourceCanTouch; 
 }
 
 // -------------- Set Classic --------------
@@ -100,19 +115,6 @@ function generateBoard(boardData) {
     ? [4, 5, 6, 6, 5, 4] 
     : [3, 4, 5, 4, 3];
 
-  // Helper function to map a resource ID to a CSS class.
-  function resourceToClass(resourceId) {
-    switch(resourceId) {
-      case 0: return 'sheep';   // light-green
-      case 1: return 'wood';    // dark-green
-      case 2: return 'wheat';   // yellow
-      case 3: return 'brick';   // red
-      case 4: return 'ore';     // grey
-      case 5: return 'desert';  // desert color
-      default: return '';
-    }
-  }
-
   let hexIndex = 0;
   // Loop through each row.
   for (let row = 0; row < rowSizes.length; row++) {
@@ -120,8 +122,12 @@ function generateBoard(boardData) {
     rowDiv.classList.add('row');
 
     // For expansion mode, if this is the second 6-row (row index 3), add the offset.
-    if (boardData.expansion && row >= 3) {
-      rowDiv.classList.add('offset');
+    // For expansion mode, if this is the second 6-row (row index 3), add the offset.
+    if (boardData.expansion && row < 3) {
+      rowDiv.classList.add('offsetLeft');
+    }
+    else if (boardData.expansion && row >= 3) {
+      rowDiv.classList.add('offsetRight');
     }
 
     // Loop through each hex in the row.
@@ -139,15 +145,35 @@ function generateBoard(boardData) {
       // If the hex is a desert, display '--'; otherwise, display the token.
       hex.textContent = (resourceId === 5 ? '--' : token);
 
-      // Optionally, add a red highlight if the token is 6 or 8 (and not a desert).
-      if ((token === 6 || token === 8) && resourceId !== 5) {
+            // Check if this token should be red or black based on the current selected number.
+      if (currentSelectedNumber && token === currentSelectedNumber) {
         hex.classList.add('red');
+      } else {
+        hex.classList.add('black');
       }
+
+      // Optionally, add a red highlight if the token is 6 or 8 (and not a desert).
+      //if ((token === 6 || token === 8) && resourceId !== 5) {
+      //  hex.classList.add('red');
+      //}
 
       rowDiv.appendChild(hex);
       hexIndex++;
     }
     boardDiv.appendChild(rowDiv);
+  }
+}
+
+// Helper function to map a resource ID to a CSS class.
+function resourceToClass(resourceId) {
+  switch(resourceId) {
+    case 0: return 'sheep';   // light-green
+    case 1: return 'wood';    // dark-green
+    case 2: return 'wheat';   // yellow
+    case 3: return 'brick';   // red
+    case 4: return 'ore';     // grey
+    case 5: return 'desert';  // desert color
+    default: return '';
   }
 }
 
@@ -168,6 +194,7 @@ function startGame() {
       .then(response => response.json())
       .then(data => {
         gameStarted = data.gameStarted;
+        currentSelectedNumber = data.selectedNumber;
         updateStates(data);
       })
       .catch(err => console.error("Error ending game:", err));
@@ -176,11 +203,13 @@ function startGame() {
 
 // -------------- Number Button Handler --------------
 function selectNumber(n) {
-  console.log("Number selected: " + n);
-  // Send the selected number to your main (server) endpoint.
+  currentSelectedNumber = n;
   fetch('/selectNumber?value=' + n)
     .then(response => response.text())
-    .then(data => console.log("Server responded:", data))
+    .then(data => {
+       console.log("Server responded:", data);
+       updateBoardColors(n);
+    })
     .catch(err => console.error("Error sending number:", err));
 }
 
@@ -188,6 +217,7 @@ function selectNumber(n) {
 // On page load, fetch the current board info from the server.
 window.addEventListener('load', () => {
   loadElementValues();
+  addSettingsListeners();
   getBoard();
 });
 
@@ -202,48 +232,66 @@ function loadElementValues() {
   option2 = document.getElementById("option2");
   option3 = document.getElementById("option3");
   option4 = document.getElementById("option4");
-
   settingsModal = document.getElementById("settingsModal");
-  openSettingsBtn = document.getElementById("openSettingsBtn");
   closeSettingsBtn = document.getElementById("closeSettingsBtn");
 }
 
 // -------------- Modal Logic --------------
 
-openSettingsBtn.addEventListener("click", () => {
-  settingsModal.style.display = "block";
-});
-closeSettingsBtn.addEventListener("click", () => {
-  settingsModal.style.display = "none";
-});
-window.addEventListener("click", (event) => {
-  if (event.target == settingsModal) {
+function addSettingsListeners() {
+  openSettingsBtn.addEventListener("click", () => {
+    settingsModal.style.display = "block";
+  });
+  closeSettingsBtn.addEventListener("click", () => {
     settingsModal.style.display = "none";
-  }
-});
+  });
+  window.addEventListener("click", (event) => {
+    if (event.target == settingsModal) {
+      settingsModal.style.display = "none";
+    }
+  });
 
-// -------------- Settings Sliders Event Listeners --------------
-document.getElementById("option1").addEventListener("change", function() {
-  let value = this.checked ? "1" : "0";
-  fetch('/eightSixCanTouch?value=' + value)
-    .catch(err => console.error("Error updating eightSixCanTouch:", err));
-});
+  // -------------- Settings Sliders Event Listeners --------------
+  option1.addEventListener("change", function() {
+    let value = this.checked ? "1" : "0";
+    fetch('/eightSixCanTouch?value=' + value)
+      .catch(err => console.error("Error updating eightSixCanTouch:", err));
+  });
 
-document.getElementById("option2").addEventListener("change", function() {
-  let value = this.checked ? "1" : "0";
-  fetch('/twoTwelveCanTouch?value=' + value)
-    .catch(err => console.error("Error updating twoTwelveCanTouch:", err));
-});
+  option2.addEventListener("change", function() {
+    let value = this.checked ? "1" : "0";
+    fetch('/twoTwelveCanTouch?value=' + value)
+      .catch(err => console.error("Error updating twoTwelveCanTouch:", err));
+  });
 
-document.getElementById("option3").addEventListener("change", function() {
-  let value = this.checked ? "1" : "0";
-  fetch('/sameNumbersCanTouch?value=' + value)
-    .catch(err => console.error("Error updating sameNumbersCanTouch:", err));
-});
+  option3.addEventListener("change", function() {
+    let value = this.checked ? "1" : "0";
+    fetch('/sameNumbersCanTouch?value=' + value)
+      .catch(err => console.error("Error updating sameNumbersCanTouch:", err));
+  });
 
-document.getElementById("option4").addEventListener("change", function() {
-  let value = this.checked ? "1" : "0";
-  fetch('/sameResourceCanTouch?value=' + value)
-    .catch(err => console.error("Error updating sameResourceCanTouch:", err));
-});
+  option4.addEventListener("change", function() {
+    let value = this.checked ? "1" : "0";
+    fetch('/sameResourceCanTouch?value=' + value)
+      .catch(err => console.error("Error updating sameResourceCanTouch:", err));
+  });
+}
 
+
+function updateBoardColors(selectedNumber) {
+  // Select all hex elements on your board
+  const hexes = document.querySelectorAll('.hex');
+  
+  hexes.forEach(hex => {
+    // Compare the text content (which shows the number) with the selected number.
+    // Trim to remove any extra whitespace.
+    if (hex.textContent.trim() === String(selectedNumber)) {
+      hex.classList.add("red");
+      hex.classList.remove("black");
+    } else {
+      // Remove the red class and optionally add a black class.
+      hex.classList.remove("red");
+      hex.classList.add("black");
+    }
+  });
+}

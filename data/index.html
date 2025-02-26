@@ -21,7 +21,9 @@
   </div>
 
   <!-- Board Container -->
-  <div class="board" id="board"></div>
+    <div class="board-wrapper">
+        <div class="board" id="board"></div>
+    </div>
 
   <!-- Start Game Button -->
   <button class="start-game-btn" onclick="startGame()">Start Game</button>
@@ -42,7 +44,7 @@
   </div>
 
   <!-- Roll Dice Button (if needed) -->
-  <button class="dice-roll-btn" onclick="rollDice()">
+  <button id="numberButtons" class="dice-roll-btn" style="display:none;" onclick="rollDice()">
       <i class="fa-solid fa-dice"></i>
   </button>
 
