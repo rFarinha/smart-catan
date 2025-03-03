@@ -10,6 +10,7 @@ let currentSelectedNumber = 0;
 
 // Elements
 var numberButtons,
+  diceRollButton,
   classicBtn,
   expansionBtn,
   openSettingsBtn,
@@ -21,7 +22,7 @@ var numberButtons,
   closeSettingsBtn
 
 // -------------- Get Board from Server --------------
-function getBoard() {
+setInterval(() => {
   fetch('/getboard')
     .then(response => response.json())
     .then(data => {
@@ -30,7 +31,7 @@ function getBoard() {
       updateStates(data);
     })
     .catch(err => console.error("Error fetching board:", err));
-}
+}, 1000);
 
 function updateStates(data) {
   
@@ -49,6 +50,7 @@ function updateStates(data) {
   if (data.gameStarted) {
     // Show number buttons and disable mode/options.
     numberButtons.style.display = "block";
+    diceRollButton.style.display = "block";
     classicBtn.disabled = true;
     expansionBtn.disabled = true;
     openSettingsBtn.disabled = true;
@@ -60,6 +62,7 @@ function updateStates(data) {
   } else {
     // Hide number buttons and re-enable mode/options.
     numberButtons.style.display = "none";
+    diceRollButton.style.display = "none";
     classicBtn.disabled = false;
     expansionBtn.disabled = false;
     openSettingsBtn.disabled = false;
@@ -73,6 +76,8 @@ function updateStates(data) {
   option2.checked = data.twoTwelveCanTouch;
   option3.checked = data.sameNumbersCanTouch;
   option4.checked = data.sameResourceCanTouch; 
+
+  updateBoardColors(currentSelectedNumber);
 }
 
 // -------------- Set Classic --------------
@@ -203,12 +208,25 @@ function startGame() {
 
 // -------------- Number Button Handler --------------
 function selectNumber(n) {
-  currentSelectedNumber = n;
   fetch('/selectNumber?value=' + n)
     .then(response => response.text())
     .then(data => {
-       console.log("Server responded:", data);
-       updateBoardColors(n);
+      console.log("Server responded:", data);
+      currentSelectedNumber = Number(data);
+      updateBoardColors(currentSelectedNumber);
+    })
+    .catch(err => console.error("Error sending number:", err));
+}
+
+// -------------- Roll Dice --------------------------
+
+function rollDice() {
+    fetch('/rollDice')
+    .then(response => response.text())
+    .then(data => {
+      console.log("Server responded:", data);
+       currentSelectedNumber = Number(data);
+       updateBoardColors(currentSelectedNumber);
     })
     .catch(err => console.error("Error sending number:", err));
 }
@@ -218,13 +236,13 @@ function selectNumber(n) {
 window.addEventListener('load', () => {
   loadElementValues();
   addSettingsListeners();
-  getBoard();
 });
 
 function loadElementValues() {
   // Elements
   startGameBtn = document.querySelector(".start-game-btn");
   numberButtons = document.getElementById("numberButtons");
+  diceRollButton = document.getElementById("diceRollButton");
   classicBtn = document.getElementById("classicBtn");
   expansionBtn = document.getElementById("expansionBtn");
   openSettingsBtn = document.getElementById("openSettingsBtn");
@@ -281,17 +299,22 @@ function addSettingsListeners() {
 function updateBoardColors(selectedNumber) {
   // Select all hex elements on your board
   const hexes = document.querySelectorAll('.hex');
-  
   hexes.forEach(hex => {
-    // Compare the text content (which shows the number) with the selected number.
-    // Trim to remove any extra whitespace.
-    if (hex.textContent.trim() === String(selectedNumber)) {
+    if (selectedNumber === 7) {
       hex.classList.add("red");
       hex.classList.remove("black");
     } else {
-      // Remove the red class and optionally add a black class.
-      hex.classList.remove("red");
-      hex.classList.add("black");
+      // Compare the text content (which shows the number) with the selected number.
+      // Trim to remove any extra whitespace.
+      if (hex.textContent.trim() === String(selectedNumber)) {
+        hex.classList.add("red");
+        hex.classList.remove("black");
+      } else {
+        // Remove the red class and optionally add a black class.
+        hex.classList.remove("red");
+        hex.classList.add("black");
+      }
     }
+    
   });
 }

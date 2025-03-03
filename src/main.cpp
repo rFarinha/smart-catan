@@ -1,8 +1,8 @@
-// TODO Website clean functions
+// FIXME Change number buttons size with screen
 // TODO Save all settings to Flash so when power is off
 // FIXME change all expansion names to extension
-// TODO Send all led related things to a library
-// TODO Led animation when robber and before game start
+// TODO HOME ASSISTANT
+// TODO CLEANING
 
 // External
 #include <Arduino.h>
@@ -15,6 +15,7 @@
 #include "BoardGenerator.h"
 #include "password.h"
 #include "WebPage.h"
+#include "LedController.h"
 
 // Increase this value if you continue to get stack overflows.
 #define BOARD_GEN_STACK_SIZE 8192
@@ -34,7 +35,10 @@ const char *WIFI_PASS = "PlaceholderPassword";
 #define LED_STRIP_PIN 4
 #define LED_COUNT_CLASSIC 19
 #define LED_COUNT_EXPANSION 30
-Adafruit_NeoPixel *strip = nullptr; // Declare a pointer for our LED strip
+
+// Create a global instance of the LedController
+LedController ledController(LED_STRIP_PIN, LED_COUNT_CLASSIC);
+
 int selectedNumber = 0;
 
 //---------------SETTINGS----------------------
@@ -54,67 +58,6 @@ String htmlPage;
 // ------------- CATAN DATA -------------------
 Board board;
 BoardConfig boardConfig;
-
-// Zig-zag mapping from hexagonal tile index -> LED index on the WS2812B strip.
-static const int tileToLedIndexClassic[19] = {
-    // Row 1 (left to right): 0,1,2
-    0, 1, 2,
-    // Row 2 (right to left): 6,5,4,3
-    6, 5, 4, 3,
-    // Row 3 (left to right): 7,8,9,10,11
-    7, 8, 9, 10, 11,
-    // Row 4 (right to left): 15,14,13,12
-    15, 14, 13, 12,
-    // Row 5 (left to right): 16,17,18
-    16, 17, 18};
-
-// Zig-zag mapping from hexagonal tile index -> LED index on the WS2812B strip.
-static const int tileToLedIndexExpansion[30] = {
-    // Row 1 (left to right): 0,1,2,3
-    0, 1, 2, 3,
-    // Row 2 (right to left): 8,7,6,5,4
-    8, 7, 6, 5, 4,
-    // Row 3 (left to right): 9,10,11,12,13,14
-    9, 10, 11, 12, 13, 14,
-    // Row 4 (right to left): 20,19,18,17,16,15
-    20, 19, 18, 17, 16, 15,
-    // Row 5 (left to right): 21,22,23,24,25
-    21, 22, 23, 24, 25,
-    // Row 6 (right to left): 29,28,27,26
-    29, 28, 27, 26};
-
-// --------------------------------------------------------------
-//                  LED STRIP
-// --------------------------------------------------------------
-
-void restartLedStrip(int numLed)
-{
-  // Clean up the old LED strip object
-  if (strip != nullptr)
-  {
-    delete strip;
-    strip = nullptr;
-  }
-
-  // Create a new LED strip object
-  Serial.print("RESTART LEDS: ");
-  Serial.println(numLed);
-  strip = new Adafruit_NeoPixel(numLed, LED_STRIP_PIN, NEO_GRB + NEO_KHZ800);
-  strip->begin();
-  strip->setBrightness(50);
-}
-
-void turnOffAllLeds()
-{
-  // Determine how many tiles to check (19 for classic, 30 for expansion)
-  int tileCount = boardConfig.isExpansion ? 30 : 19;
-
-  // Loop through each tile on the board.
-  for (int tile = 0; tile < tileCount; tile++)
-  {
-    strip->setPixelColor(tile, 0);
-  }
-}
 
 //---------------------------------------------------------------
 //                 UTILS
@@ -176,11 +119,9 @@ String generateJSON()
 // This task runs board generation in its own FreeRTOS task.
 void boardGenerationTask(void *pvParameters)
 {
-  // This example task simply generates a new board once.
-  // You could later add a loop if you need to re-generate boards on demand.
   Serial.println("Board generation task started.");
 
-  // For example, use the current boardConfig to generate a board.
+  // Use the current boardConfig to generate a board.
   board = generateBoard(boardConfig);
 
   // You could now signal that the board is ready, update LEDs, etc.
@@ -271,7 +212,7 @@ void handleSetClassic()
   if (boardConfig.isExpansion)
   {
     boardConfig.isExpansion = false;
-    restartLedStrip(LED_COUNT_CLASSIC);
+    ledController.restart(LED_COUNT_CLASSIC);
   }
 
   createBoardTask();
@@ -294,7 +235,7 @@ void handleSetExpansion()
   if (!boardConfig.isExpansion)
   {
     boardConfig.isExpansion = true;
-    restartLedStrip(LED_COUNT_EXPANSION);
+    ledController.restart(LED_COUNT_EXPANSION);
   }
 
   createBoardTask();
@@ -330,11 +271,22 @@ void handleGetBoard()
   Serial.println(jsonResponse);
 }
 
+// GET current number state
+void handleGetNumber()
+{
+  Serial.println("[/getnumber] Request received. Returning current selected number.");
+  // Send the JSON response over your web server
+  server.send(200, "application/json", String(selectedNumber));
+}
+
 // Start Game: generate a new board and mark game as started.
 void handleStartGame()
 {
   Serial.println("[/startgame] Request received. Starting game.");
   gameStarted = true;
+
+  ledController.stopAnimation();
+  ledController.startAnimation(START_GAME_ANIMATION, nullptr, 0, 250);
 
   // Generate the json data to send to the webpage
   String jsonResponse = generateJSON();
@@ -353,7 +305,10 @@ void handleEndGame()
   gameStarted = false;
   selectedNumber = 0;
 
-  turnOffAllLeds();
+  // ledController.turnOffAllLeds();
+  //  Update the LED strip to show the changes.
+  // ledController.update();
+  ledController.startAnimation(WAITING_ANIMATION, nullptr, 0, 50);
 
   // Generate the json data to send to the webpage
   String jsonResponse = generateJSON();
@@ -374,50 +329,83 @@ void handleSelectNumber()
   Serial.print("[/selectNumber] Number selected: ");
   Serial.println(selectedNumber);
 
-  if (strip == nullptr)
-  {
-    Serial.println("Error: LED strip not initialized!");
-    server.send(500, "text/plain", "LED strip not initialized");
-    return;
-  }
-
-  // Determine how many tiles to check (19 for classic, 30 for expansion)
-  int tileCount = boardConfig.isExpansion ? 30 : 19;
-
-  // Loop through each tile on the board.
-  for (int tile = 0; tile < tileCount; tile++)
-  {
-    // Pick the correct LED index for this tile
-    int ledIndex = boardConfig.isExpansion ? tileToLedIndexExpansion[tile] : tileToLedIndexClassic[tile];
-
-    Serial.print("Tile ");
-    Serial.print(tile);
-    Serial.print(" -> LED ");
-    Serial.print(ledIndex);
-    Serial.print(" with number ");
-    Serial.println(board.numbers[tile]);
-
-    // If the board's number on this tile matches the selected number, light the LED;
-    // otherwise, turn it off.
-    if (board.numbers[tile] == selectedNumber)
-    {
-      // For example, set matching LED to red.
-      Serial.println("FOUND NUMBER ");
-      Serial.println(sizeof(strip));
-      strip->setPixelColor(ledIndex, strip->Color(255, 255, 255));
-    }
-    else
-    {
-      // Turn off the LED.
-      strip->setPixelColor(ledIndex, 0);
-    }
-  }
-
-  // Update the LED strip to show the changes.
-  strip->show();
+  turnOnNumber();
 
   // Respond to the client.
-  server.send(200, "text/plain", "Number " + value + " received and LEDs updated");
+  server.send(200, "text/plain", value);
+}
+
+void turnOnNumber()
+{
+  // Determine how many tiles to check (19 for classic, 30 for expansion)
+  int tileCount = boardConfig.isExpansion ? 30 : 19;
+  ledController.stopAnimation();
+
+  if (selectedNumber == 7)
+  {
+    uint8_t requiredTiles = boardConfig.isExpansion ? 2 : 1;
+    uint8_t foundCount = 0;
+
+    // Allocate the array on the heap.
+    uint16_t *robberTiles = new uint16_t[requiredTiles];
+
+    for (int tile = 0; tile < tileCount && foundCount < requiredTiles; tile++)
+    {
+      // Assuming the desert tile has number 0.
+      if (board.numbers[tile] == 0)
+      {
+        Serial.print("found at tile: ");
+        Serial.println(tile);
+        robberTiles[foundCount++] = tile;
+      }
+    }
+    // Pass the dynamically allocated array to the animation task.
+    ledController.startAnimation(ROBBER_ANIMATION, robberTiles, requiredTiles, 500);
+  }
+  else
+  {
+    // Loop through each tile on the board.
+    for (int tile = 0; tile < tileCount; tile++)
+    {
+      // If the board's number on this tile matches the selected number, light the LED;
+      // otherwise, turn it off.
+      if (board.numbers[tile] == selectedNumber)
+      {
+        ledController.turnTileOn(tile, ledController.Color(255, 255, 255));
+      }
+      else
+      {
+        // Turn off the LED.
+        ledController.turnTileOn(tile, 0);
+      }
+    }
+
+    // Update the LED strip to show the changes.
+    ledController.update();
+  }
+}
+
+void handleRollDice()
+{
+  // Roll two dice (each die: 1 to 6)
+  int die1 = random(1, 7); // random(1, 7) generates numbers from 1 to 6
+  int die2 = random(1, 7);
+  selectedNumber = die1 + die2;
+
+  // Run the LED animation from the library.
+  ledController.rollDiceAnimation();
+
+  // turn off all leds due to animation ending with all on
+  ledController.turnOffAllLeds();
+
+  // Convert the total sum into a string
+  String result = String(selectedNumber);
+
+  // After the animation, update the board using your turnOnNumber() function.
+  turnOnNumber();
+
+  // Respond to the client with the dice total
+  server.send(200, "text/plain", result);
 }
 
 // --------------------------------------------------------------
@@ -444,8 +432,10 @@ void setup()
   boardConfig.sameNumbersCanTouch = DEFAULT_SAMENUMBERS_CANTOUCH;
   boardConfig.sameResourceCanTouch = DEFAULT_SAMERESOURCE_CANTOUCH;
 
-  // Initialize LED strip with currentNumLeds
-  restartLedStrip(LED_COUNT_CLASSIC);
+  // Initialize LED strip
+  ledController.begin();
+
+  ledController.startAnimation(WAITING_ANIMATION, nullptr, 0, 50);
 
   // Set up server routes
   server.on("/", HTTP_GET, handleRoot);
@@ -459,9 +449,11 @@ void setup()
   server.on("/setclassic", HTTP_GET, handleSetClassic);
   server.on("/setexpansion", HTTP_GET, handleSetExpansion);
   server.on("/getboard", HTTP_GET, handleGetBoard);
+  server.on("/getnumber", HTTP_GET, handleGetNumber);
   server.on("/startgame", HTTP_GET, handleStartGame);
   server.on("/endgame", HTTP_GET, handleEndGame);
   server.on("/selectNumber", HTTP_GET, handleSelectNumber);
+  server.on("/rollDice", HTTP_GET, handleRollDice);
 
   // Create the board generation task on the specified core with an increased stack size.
   xTaskCreatePinnedToCore(

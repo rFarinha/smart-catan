@@ -18,6 +18,10 @@
       <button class="gear-button" id="openSettingsBtn">
           <i class="fas fa-cog"></i>
       </button>
+        <!-- Roll Dice Button -->
+      <button id="diceRollButton" class="dice-roll-btn" style="display:none;" onclick="rollDice()">
+         <i class="fa-solid fa-dice"></i>
+      </button>
   </div>
 
   <!-- Board Container -->
@@ -42,11 +46,6 @@
       <button onclick="selectNumber(11)">11</button>
       <button onclick="selectNumber(12)">12</button>
   </div>
-
-  <!-- Roll Dice Button (if needed) -->
-  <button id="numberButtons" class="dice-roll-btn" style="display:none;" onclick="rollDice()">
-      <i class="fa-solid fa-dice"></i>
-  </button>
 
   <!-- SETTINGS MODAL -->
   <div id="settingsModal" class="modal">
