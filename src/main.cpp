@@ -10,6 +10,7 @@
 #include <FS.h>
 #include <Adafruit_NeoPixel.h>
 #include <ArduinoJson.h>
+#include <SPIFFS.h>
 
 // Internal
 #include "BoardGenerator.h"
@@ -22,7 +23,8 @@
 #define BOARD_GEN_TASK_PRIORITY 1
 #define BOARD_GEN_TASK_CORE 1 // or 0, depending on your design
 
-volatile bool boardReady = false; // global flag
+volatile bool boardReady = true; // global flag
+bool gameLoaded = false;
 
 // ------------- WIFI Credentials -------------
 #ifndef PASSWORD_H
@@ -39,7 +41,7 @@ const char *WIFI_PASS = "PlaceholderPassword";
 // Create a global instance of the LedController
 LedController ledController(LED_STRIP_PIN, LED_COUNT_CLASSIC);
 
-int selectedNumber = 0;
+int selectedNumber;
 
 //---------------SETTINGS----------------------
 #define DEFAULT_EIGHT_SIX_CANTOUCH true
@@ -48,7 +50,7 @@ int selectedNumber = 0;
 #define DEFAULT_SAMERESOURCE_CANTOUCH true
 #define DEFAULT_IS_EXPANSION false
 
-bool gameStarted = false;
+bool gameStarted;
 
 // ------------- WEB SERVER -------------------
 WebServer server(80);
@@ -111,6 +113,94 @@ String generateJSON()
   serializeJson(doc, jsonResponse);
 
   return jsonResponse;
+}
+
+// Save the current game state to flash
+void saveGameState()
+{
+  // Generate the json data to send to the webpage
+  String jsonString = generateJSON();
+
+  // Write to SPIFFS
+  File file = SPIFFS.open("/gamestate.json", FILE_WRITE);
+  if (!file)
+  {
+    Serial.println("Failed to open file for writing");
+    return;
+  }
+  file.print(jsonString);
+  file.close();
+  Serial.println("Game state saved to flash.");
+}
+
+// Delete the saved game state from flash
+void deleteGameState()
+{
+  if (SPIFFS.exists("/gamestate.json"))
+  {
+    SPIFFS.remove("/gamestate.json");
+    Serial.println("Game state deleted from flash.");
+  }
+}
+
+void loadGameState()
+{
+  Serial.print("Load Start!");
+  if (SPIFFS.exists("/gamestate.json"))
+  {
+    Serial.print("Gamestate.json exists");
+    File file = SPIFFS.open("/gamestate.json", FILE_READ);
+    if (!file)
+    {
+      Serial.println("Failed to open game state file for reading");
+      return;
+    }
+    String jsonString = file.readString();
+    Serial.print("JSON STRING FROM FILE: ");
+    Serial.println(jsonString);
+    file.close();
+
+    // Create a dynamic JSON document.
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, jsonString);
+    if (error)
+    {
+      Serial.print("Failed to parse game state: ");
+      Serial.println(error.f_str());
+      return;
+    }
+
+    // Load board configuration.
+    boardConfig.isExpansion = doc["expansion"];
+    boardConfig.eightSixCanTouch = doc["eightSixCanTouch"];
+    boardConfig.twoTwelveCanTouch = doc["twoTwelveCanTouch"];
+    boardConfig.sameNumbersCanTouch = doc["sameNumbersCanTouch"];
+    boardConfig.sameResourceCanTouch = doc["sameResourceCanTouch"];
+
+    gameStarted = doc["gameStarted"];
+    selectedNumber = doc["selectedNumber"];
+
+    // Load board resources and numbers.
+    board.resources.clear();
+    board.numbers.clear();
+
+    JsonArray resources = doc["resources"].as<JsonArray>();
+    for (JsonVariant v : resources)
+    {
+      board.resources.push_back(v.as<int>());
+    }
+
+    JsonArray numbers = doc["numbers"].as<JsonArray>();
+    for (JsonVariant v : numbers)
+    {
+      board.numbers.push_back(v.as<int>());
+    }
+    Serial.println("Game state loaded from flash.");
+  }
+  else
+  {
+    Serial.println("Game state loaded from flash failed!");
+  }
 }
 
 // --------------------------------------------------------------
@@ -255,20 +345,19 @@ void handleGetBoard()
 {
   Serial.println("[/getboard] Request received. Returning current board state.");
   // If board hasn't been generated yet, generate one.
-  if (board.resources.size() == 0)
+  if (gameLoaded)
   {
-    createBoardTask();
+    int totalHexes = boardConfig.isExpansion ? 30 : 19;
+
+    // Generate the json data to send to the webpage
+    String jsonResponse = generateJSON();
+
+    // Send the JSON response over your web server
+    server.send(200, "application/json", jsonResponse);
+
+    // debug
+    Serial.println(jsonResponse);
   }
-  int totalHexes = boardConfig.isExpansion ? 30 : 19;
-
-  // Generate the json data to send to the webpage
-  String jsonResponse = generateJSON();
-
-  // Send the JSON response over your web server
-  server.send(200, "application/json", jsonResponse);
-
-  // debug
-  Serial.println(jsonResponse);
 }
 
 // GET current number state
@@ -291,6 +380,9 @@ void handleStartGame()
   // Generate the json data to send to the webpage
   String jsonResponse = generateJSON();
 
+  // Save the game state to flash.
+  saveGameState();
+
   // Send the JSON response over your web server
   server.send(200, "application/json", jsonResponse);
 
@@ -305,10 +397,11 @@ void handleEndGame()
   gameStarted = false;
   selectedNumber = 0;
 
-  // ledController.turnOffAllLeds();
-  //  Update the LED strip to show the changes.
-  // ledController.update();
+  // Restart Waiting animation
   ledController.startAnimation(WAITING_ANIMATION, nullptr, 0, 50);
+
+  // Delete the saved game state.
+  deleteGameState();
 
   // Generate the json data to send to the webpage
   String jsonResponse = generateJSON();
@@ -330,6 +423,8 @@ void handleSelectNumber()
   Serial.println(selectedNumber);
 
   turnOnNumber();
+
+  saveGameState();
 
   // Respond to the client.
   server.send(200, "text/plain", value);
@@ -404,6 +499,8 @@ void handleRollDice()
   // After the animation, update the board using your turnOnNumber() function.
   turnOnNumber();
 
+  saveGameState();
+
   // Respond to the client with the dice total
   server.send(200, "text/plain", result);
 }
@@ -414,7 +511,31 @@ void handleRollDice()
 void setup()
 {
   Serial.begin(115200);
-  delay(500);
+  delay(2000);
+
+  // Initialize SPIFFS
+  if (!SPIFFS.begin(true))
+  {
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    return;
+  }
+
+  // Attempt to load the saved game state.
+  loadGameState();
+
+  // Initialize board default values
+  // If no game state was loaded, then set default board config.
+  if (board.resources.size() == 0)
+  {
+    Serial.print("No settings in flash! Load Default");
+    boardConfig.isExpansion = DEFAULT_IS_EXPANSION;
+    boardConfig.eightSixCanTouch = DEFAULT_EIGHT_SIX_CANTOUCH;
+    boardConfig.twoTwelveCanTouch = DEFAULT_TWO_TWELVE_CANTOUCH;
+    boardConfig.sameNumbersCanTouch = DEFAULT_SAMENUMBERS_CANTOUCH;
+    boardConfig.sameResourceCanTouch = DEFAULT_SAMERESOURCE_CANTOUCH;
+    gameStarted = false;
+    selectedNumber = 0;
+  }
 
   // Connect to WiFi
   connectWifi(WIFI_SSID, WIFI_PASS);
@@ -425,18 +546,18 @@ void setup()
   // Seed the random number generator so we get fresh random sequences
   randomSeed(micros());
 
-  // Initialize board default values
-  boardConfig.isExpansion = DEFAULT_IS_EXPANSION;
-  boardConfig.eightSixCanTouch = DEFAULT_EIGHT_SIX_CANTOUCH;
-  boardConfig.twoTwelveCanTouch = DEFAULT_TWO_TWELVE_CANTOUCH;
-  boardConfig.sameNumbersCanTouch = DEFAULT_SAMENUMBERS_CANTOUCH;
-  boardConfig.sameResourceCanTouch = DEFAULT_SAMERESOURCE_CANTOUCH;
-
   // Initialize LED strip
-  ledController.begin();
+  uint16_t ledCount = boardConfig.isExpansion ? 30 : 19;
+  ledController.begin(ledCount);
 
-  ledController.startAnimation(WAITING_ANIMATION, nullptr, 0, 50);
-
+  if (board.resources.size() == 0)
+  {
+    ledController.startAnimation(WAITING_ANIMATION, nullptr, 0, 50);
+  }
+  else
+  {
+    turnOnNumber();
+  }
   // Set up server routes
   server.on("/", HTTP_GET, handleRoot);
   // Endpoints for updating settings:
@@ -455,20 +576,30 @@ void setup()
   server.on("/selectNumber", HTTP_GET, handleSelectNumber);
   server.on("/rollDice", HTTP_GET, handleRollDice);
 
-  // Create the board generation task on the specified core with an increased stack size.
-  xTaskCreatePinnedToCore(
-      boardGenerationTask,     // Task function.
-      "BoardGenTask",          // Name of task.
-      BOARD_GEN_STACK_SIZE,    // Stack size in words.
-      NULL,                    // Task input parameter.
-      BOARD_GEN_TASK_PRIORITY, // Task priority.
-      NULL,                    // Task handle.
-      BOARD_GEN_TASK_CORE      // Core where the task should run.
-  );
+  // Only generate a new board if none was loaded.
+  if (board.resources.size() == 0)
+  {
+    Serial.print("No board loaded, generate board!");
+    xTaskCreatePinnedToCore(
+        boardGenerationTask,     // Task function.
+        "BoardGenTask",          // Name of task.
+        BOARD_GEN_STACK_SIZE,    // Stack size in words.
+        NULL,                    // Task input parameter.
+        BOARD_GEN_TASK_PRIORITY, // Task priority.
+        NULL,                    // Task handle.
+        BOARD_GEN_TASK_CORE      // Core where the task should run.
+    );
+  }
+  else
+  {
+    Serial.println("Using saved board state.");
+  }
 
   // Start server
   server.begin();
   Serial.println("HTTP server started.");
+
+  gameLoaded = true;
 }
 
 void loop()

@@ -18,9 +18,10 @@ LedController::~LedController()
     }
 }
 
-void LedController::begin()
+void LedController::begin(uint16_t numLeds)
 {
     // Create a new LED strip instance
+    ledCount = numLeds;
     if (strip != nullptr)
     {
         delete strip;

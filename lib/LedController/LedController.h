@@ -20,7 +20,7 @@ public:
     ~LedController();
 
     // Initialize and restart the LED strip
-    void begin();
+    void begin(uint16_t numLeds);
     void restart(uint16_t numLeds);
 
     // Basic LED functions
