@@ -1,6 +1,3 @@
-// FIXME Change number buttons size with screen
-// FIXME repeating 7 should repeat animation
-// TODO Save all settings to Flash so when power is off
 // FIXME change all expansion names to extension
 // TODO HOME ASSISTANT
 // TODO CLEANING
@@ -436,6 +433,9 @@ void turnOnNumber()
   // Determine how many tiles to check (19 for classic, 30 for expansion)
   int tileCount = boardConfig.isExpansion ? 30 : 19;
   ledController.stopAnimation();
+
+  // turn off all leds
+  ledController.turnOffAllLeds();
 
   if (selectedNumber == 7)
   {
