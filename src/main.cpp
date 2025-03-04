@@ -1,4 +1,3 @@
-// TODO new settings disable manual input numbers
 // FIXME classic adjacency
 // TODO HOME ASSISTANT
 // TODO CLEANING
@@ -47,7 +46,10 @@ int selectedNumber;
 #define DEFAULT_TWO_TWELVE_CANTOUCH true
 #define DEFAULT_SAMENUMBERS_CANTOUCH true
 #define DEFAULT_SAMERESOURCE_CANTOUCH true
+#define DEFAULT_MANUAL_DICE false
 #define DEFAULT_IS_EXTENSION false
+
+bool manualDice;
 
 bool gameStarted;
 
@@ -103,6 +105,7 @@ String generateJSON()
   doc["twoTwelveCanTouch"] = boardConfig.twoTwelveCanTouch;
   doc["sameNumbersCanTouch"] = boardConfig.sameNumbersCanTouch;
   doc["sameResourceCanTouch"] = boardConfig.sameResourceCanTouch;
+  doc["manualDice"] = manualDice;
 
   // Include Turn on led
   doc["selectedNumber"] = selectedNumber;
@@ -175,6 +178,7 @@ void loadGameState()
     boardConfig.twoTwelveCanTouch = doc["twoTwelveCanTouch"];
     boardConfig.sameNumbersCanTouch = doc["sameNumbersCanTouch"];
     boardConfig.sameResourceCanTouch = doc["sameResourceCanTouch"];
+    manualDice = doc["manualDice"];
 
     gameStarted = doc["gameStarted"];
     selectedNumber = doc["selectedNumber"];
@@ -290,6 +294,15 @@ void handleUpdateSameResourceCanTouch()
   Serial.print("Same Resource Can Touch set to: ");
   Serial.println(boardConfig.sameResourceCanTouch ? "true" : "false");
   server.send(200, "text/plain", "sameResourceCanTouch updated");
+}
+
+void handleUpdateManualDice()
+{
+  String value = server.arg("value");
+  manualDice = (value == "1");
+  Serial.print("Manual Dice set to: ");
+  Serial.println(manualDice ? "true" : "false");
+  server.send(200, "text/plain", "manualDice updated");
 }
 
 // Set game as Classic
@@ -535,6 +548,7 @@ void setup()
     boardConfig.twoTwelveCanTouch = DEFAULT_TWO_TWELVE_CANTOUCH;
     boardConfig.sameNumbersCanTouch = DEFAULT_SAMENUMBERS_CANTOUCH;
     boardConfig.sameResourceCanTouch = DEFAULT_SAMERESOURCE_CANTOUCH;
+    manualDice = DEFAULT_MANUAL_DICE;
     gameStarted = false;
     selectedNumber = 0;
   }
@@ -567,6 +581,7 @@ void setup()
   server.on("/twoTwelveCanTouch", HTTP_GET, handleUpdateTwoTwelveCanTouch);
   server.on("/sameNumbersCanTouch", HTTP_GET, handleUpdateSameNumbersCanTouch);
   server.on("/sameResourceCanTouch", HTTP_GET, handleUpdateSameResourceCanTouch);
+  server.on("/manualDice", HTTP_GET, handleUpdateManualDice);
 
   // Set up server routes
   server.on("/setclassic", HTTP_GET, handleSetClassic);

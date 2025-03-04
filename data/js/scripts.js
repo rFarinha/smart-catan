@@ -5,6 +5,7 @@ let eight_six_canTouch = true;
 let two_twelve_canTouch = true;
 let sameNumbers_canTouch = true;
 let sameResource_canTouch = true;
+let manualDice = true;
 
 let currentSelectedNumber = 0;
 
@@ -18,6 +19,7 @@ var numberButtons,
   option2,
   option3,
   option4,
+  option5,
   settingsModa,
   closeSettingsBtn
 
@@ -29,6 +31,7 @@ setInterval(() => {
       gameStarted = data.gameStarted
       extension = data.extension;
       currentSelectedNumber = data.selectedNumber;
+      manualDice = data.manualDice;
       updateStates(data);
     })
     .catch(err => console.error("Error fetching board:", err));
@@ -50,7 +53,9 @@ function updateStates(data) {
   // Disable buttons if game as started
   if (gameStarted) {
     // Show number buttons and disable mode/options.
-    numberButtons.style.display = "grid";
+    if (manualDice) {
+      numberButtons.style.display = "grid";
+    }
     diceRollButton.style.display = "block";
     classicBtn.disabled = true;
     extensionBtn.disabled = true;
@@ -59,6 +64,7 @@ function updateStates(data) {
     option2.disabled = true;
     option3.disabled = true;
     option4.disabled = true;
+    option5.disabled = true;
     startGameBtn.textContent = "End Game";
   } else {
     // Hide number buttons and re-enable mode/options.
@@ -71,12 +77,14 @@ function updateStates(data) {
     option2.disabled = false;
     option3.disabled = false;
     option4.disabled = false;
+    option5.disabled = false;
     startGameBtn.textContent = "Start Game";
   }
   option1.checked = data.eightSixCanTouch;
   option2.checked = data.twoTwelveCanTouch;
   option3.checked = data.sameNumbersCanTouch;
   option4.checked = data.sameResourceCanTouch;
+  option5.checked = data.manualDice;
 
   updateBoardColors(currentSelectedNumber);
 
@@ -255,6 +263,7 @@ function loadElementValues() {
   option2 = document.getElementById("option2");
   option3 = document.getElementById("option3");
   option4 = document.getElementById("option4");
+  option5 = document.getElementById("option5");
   settingsModal = document.getElementById("settingsModal");
   closeSettingsBtn = document.getElementById("closeSettingsBtn");
 }
@@ -297,6 +306,12 @@ function addSettingsListeners() {
     let value = this.checked ? "1" : "0";
     fetch('/sameResourceCanTouch?value=' + value)
       .catch(err => console.error("Error updating sameResourceCanTouch:", err));
+  });
+
+  option5.addEventListener("change", function () {
+    let value = this.checked ? "1" : "0";
+    fetch('/manualDice?value=' + value)
+      .catch(err => console.error("Error updating manualDice:", err));
   });
 }
 
