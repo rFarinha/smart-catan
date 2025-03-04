@@ -35,11 +35,11 @@ setInterval(() => {
 }, 1000);
 
 function updateStates(data) {
-  
+
   // Update the board with the server's response.
   generateBoard(data);
 
-    // Update mode button labels based on the board's mode.
+  // Update mode button labels based on the board's mode.
   if (expansion) {
     classicBtn.textContent = "Classic";
     expansionBtn.textContent = "Shuffle";
@@ -50,7 +50,7 @@ function updateStates(data) {
   // Disable buttons if game as started
   if (gameStarted) {
     // Show number buttons and disable mode/options.
-    numberButtons.style.display = "block";
+    numberButtons.style.display = "grid";
     diceRollButton.style.display = "block";
     classicBtn.disabled = true;
     expansionBtn.disabled = true;
@@ -76,7 +76,7 @@ function updateStates(data) {
   option1.checked = data.eightSixCanTouch;
   option2.checked = data.twoTwelveCanTouch;
   option3.checked = data.sameNumbersCanTouch;
-  option4.checked = data.sameResourceCanTouch; 
+  option4.checked = data.sameResourceCanTouch;
 
   updateBoardColors(currentSelectedNumber);
 }
@@ -117,8 +117,8 @@ function generateBoard(boardData) {
   boardDiv.innerHTML = ''; // Clear any existing content
 
   // Determine row sizes based on board mode.
-  const rowSizes = boardData.expansion 
-    ? [4, 5, 6, 6, 5, 4] 
+  const rowSizes = boardData.expansion
+    ? [4, 5, 6, 6, 5, 4]
     : [3, 4, 5, 4, 3];
 
   let hexIndex = 0;
@@ -140,10 +140,10 @@ function generateBoard(boardData) {
     for (let col = 0; col < rowSizes[row]; col++) {
       // Ensure we don't overrun the arrays.
       if (hexIndex >= boardData.resources.length) break;
-      
+
       const resourceId = boardData.resources[hexIndex];
       const token = boardData.numbers[hexIndex];
-      
+
       const hex = document.createElement('div');
       // Add classes for the hex shape and its resource color.
       hex.classList.add('hex', resourceToClass(resourceId));
@@ -151,7 +151,7 @@ function generateBoard(boardData) {
       // If the hex is a desert, display '--'; otherwise, display the token.
       hex.textContent = (resourceId === 5 ? '--' : token);
 
-            // Check if this token should be red or black based on the current selected number.
+      // Check if this token should be red or black based on the current selected number.
       if (currentSelectedNumber && token === currentSelectedNumber) {
         hex.classList.add('red');
       } else {
@@ -172,7 +172,7 @@ function generateBoard(boardData) {
 
 // Helper function to map a resource ID to a CSS class.
 function resourceToClass(resourceId) {
-  switch(resourceId) {
+  switch (resourceId) {
     case 0: return 'sheep';   // light-green
     case 1: return 'wood';    // dark-green
     case 2: return 'wheat';   // yellow
@@ -222,12 +222,12 @@ function selectNumber(n) {
 // -------------- Roll Dice --------------------------
 
 function rollDice() {
-    fetch('/rollDice')
+  fetch('/rollDice')
     .then(response => response.text())
     .then(data => {
       console.log("Server responded:", data);
-       currentSelectedNumber = Number(data);
-       updateBoardColors(currentSelectedNumber);
+      currentSelectedNumber = Number(data);
+      updateBoardColors(currentSelectedNumber);
     })
     .catch(err => console.error("Error sending number:", err));
 }
@@ -271,25 +271,25 @@ function addSettingsListeners() {
   });
 
   // -------------- Settings Sliders Event Listeners --------------
-  option1.addEventListener("change", function() {
+  option1.addEventListener("change", function () {
     let value = this.checked ? "1" : "0";
     fetch('/eightSixCanTouch?value=' + value)
       .catch(err => console.error("Error updating eightSixCanTouch:", err));
   });
 
-  option2.addEventListener("change", function() {
+  option2.addEventListener("change", function () {
     let value = this.checked ? "1" : "0";
     fetch('/twoTwelveCanTouch?value=' + value)
       .catch(err => console.error("Error updating twoTwelveCanTouch:", err));
   });
 
-  option3.addEventListener("change", function() {
+  option3.addEventListener("change", function () {
     let value = this.checked ? "1" : "0";
     fetch('/sameNumbersCanTouch?value=' + value)
       .catch(err => console.error("Error updating sameNumbersCanTouch:", err));
   });
 
-  option4.addEventListener("change", function() {
+  option4.addEventListener("change", function () {
     let value = this.checked ? "1" : "0";
     fetch('/sameResourceCanTouch?value=' + value)
       .catch(err => console.error("Error updating sameResourceCanTouch:", err));
@@ -316,6 +316,6 @@ function updateBoardColors(selectedNumber) {
         hex.classList.add("black");
       }
     }
-    
+
   });
 }

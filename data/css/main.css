@@ -18,42 +18,49 @@
 
 
 body {
-font-family: Arial, sans-serif;
-margin: 0; 
-padding: 0;
-display: flex;
-flex-direction: column;
-align-items: center;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
-h1, p {
-margin: 20px;
+
+h1,
+p {
+  margin: 20px;
 }
+
 .top-buttons {
-display: flex;
-justify-content: center;
-align-items: center;
-gap: 10px;
-margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
 }
+
 button {
-font-size: 16px;
-padding: 10px;
-cursor: pointer;
-border: none;
-border-radius: 4px;
-background: #2f74c0;
-color: #fff;
+  font-size: 16px;
+  padding: 10px;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  background: #2f74c0;
+  color: #fff;
 }
+
 button:hover {
-background: #1f4e80;
+  background: #1f4e80;
 }
+
 .gear-button {
-background-color: #990000;
-border: none;
-padding: 10px;
-cursor: pointer;
-font-size: 16px;
+  background-color: #990000;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  font-size: 16px;
 }
+
 /* Board layout */
 .board-wrapper {
   width: 100%;
@@ -69,12 +76,14 @@ font-size: 16px;
   flex-direction: column;
   align-items: center;
 }
+
 .row {
   display: flex;
   justify-content: center;
   align-items: center;
   margin: 0px 0;
 }
+
 .hex {
   width: var(--hex-size);
   height: var(--hex-size);
@@ -89,14 +98,37 @@ font-size: 16px;
   color: #333;
 }
 
-.sheep { background-color: #90EE90; }
-.ore         { background-color: #D3D3D3; }
-.brick        { background-color: #B22222; }
-.wheat      { background-color: #FFD700; }
-.wood   { background-color: #006400; }
-.desert       { background-color: #F0E68C; }
-.red          { color: red; }
-.black          { color: rgb(0, 0, 0); }
+.sheep {
+  background-color: #90EE90;
+}
+
+.ore {
+  background-color: #D3D3D3;
+}
+
+.brick {
+  background-color: #B22222;
+}
+
+.wheat {
+  background-color: #FFD700;
+}
+
+.wood {
+  background-color: #006400;
+}
+
+.desert {
+  background-color: #F0E68C;
+}
+
+.red {
+  color: red;
+}
+
+.black {
+  color: rgb(0, 0, 0);
+}
 
 /* Shift the row with the offset class right by half a hexagon's width */
 .row.offsetRight {
@@ -109,97 +141,160 @@ font-size: 16px;
 }
 
 .start-game-btn {
-font-size: 16px;
-padding: 10px;
-cursor: pointer;
-border: none;
-border-radius: 4px;
-background: #28a745;
-color: #fff;
-margin-bottom: 10px;
+  font-size: 16px;
+  padding: 10px;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  background: #28a745;
+  color: #fff;
+  margin-bottom: 10px;
 }
+
 .start-game-btn:hover {
-background: #218838;
+  background: #218838;
 }
 
 /* Number Buttons (2..12) */
 #numberButtons {
-display: none;
-margin-bottom: 30px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: stretch;
+  margin-bottom: 30px;
 }
-#numberButtons button {
-margin: 5px;
-background: #555;
-color: #fff;
-border-radius: 4px;
+
+/* This grid holds the two rows of smaller buttons */
+#numberButtonsRows {
+  display: grid;
+  grid-template-rows: repeat(2, auto);
+  gap: 5px;
 }
+
+/* The rows of buttons arranged horizontally */
+.number-row {
+  display: flex;
+  gap: 5px;
+}
+
+/* The 7 button spans both rows in the second column */
+#bigSeven {
+  width: 80px;
+  height: 87px;
+  margin: 2px;
+  grid-column: 2;
+  /* Force it into the second column */
+  grid-row: 1 / span 2;
+  font-size: 1.5em;
+  /* Increase font size as needed */
+  padding: 0px;
+  /* Adjust padding to match your design */
+  background: #555;
+  color: #fff;
+}
+
+.small-button button {
+  width: 40px;
+  margin: 2px;
+  background: #555;
+  color: #fff;
+  border-radius: 4px;
+}
+
 #numberButtons button:hover {
-background: #333;
+  background: #333;
 }
+
 /* Basic modal for Settings (unchanged) */
 .modal {
-display: none;
-position: fixed;
-z-index: 999;
-left: 0; top: 0;
-width: 100%; height: 100%;
-background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  position: fixed;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
 }
+
 .modal-content {
-position: relative;
-background-color: #fff;
-margin: 10% auto;
-padding: 20px;
-border-radius: 5px;
-width: 90%;
-max-width: 400px;
-box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  position: relative;
+  background-color: #fff;
+  margin: 10% auto;
+  padding: 20px;
+  border-radius: 5px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
+
 .close-btn {
-margin-top: 20px; 
-background: #eee;
-color: #333;
-border: none;
-cursor: pointer;
-padding: 10px;
-border-radius: 4px;
+  margin-top: 20px;
+  background: #eee;
+  color: #333;
+  border: none;
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 4px;
 }
+
 .switch {
-position: relative;
-display: inline-block;
-width: 42px; height: 24px;
-margin-right: 10px;
-vertical-align: middle;
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+  margin-right: 10px;
+  vertical-align: middle;
 }
-.switch input { opacity: 0; width: 0; height: 0; }
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
 .slider {
-position: absolute; cursor: pointer;
-top: 0; left: 0; right: 0; bottom: 0;
-background-color: #ccc;
-transition: 0.4s;
-border-radius: 34px;
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 34px;
 }
+
 .slider:before {
-position: absolute; content: "";
-height: 16px; width: 16px;
-left: 4px; bottom: 4px;
-background-color: white;
-transition: 0.4s;
-border-radius: 50%;
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
 }
-input:checked + .slider {
-background-color: #2196F3;
+
+input:checked+.slider {
+  background-color: #2196F3;
 }
-input:checked + .slider:before {
-transform: translateX(18px);
+
+input:checked+.slider:before {
+  transform: translateX(18px);
 }
+
 .toggle-label {
-vertical-align: middle;
-font-size: 14px;
+  vertical-align: middle;
+  font-size: 14px;
 }
 
 button:disabled {
-  background-color: #ccc;  /* light grey */
-  color: #888;             /* muted text */
-  cursor: not-allowed;     /* shows a not-allowed cursor */
+  background-color: #ccc;
+  /* light grey */
+  color: #888;
+  /* muted text */
+  cursor: not-allowed;
+  /* shows a not-allowed cursor */
 }

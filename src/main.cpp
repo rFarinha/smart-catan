@@ -1,4 +1,5 @@
 // FIXME Change number buttons size with screen
+// FIXME repeating 7 should repeat animation
 // TODO Save all settings to Flash so when power is off
 // FIXME change all expansion names to extension
 // TODO HOME ASSISTANT
