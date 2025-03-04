@@ -71,7 +71,7 @@ void LedController::setPixelColor(uint16_t pixel, uint32_t color)
 void LedController::turnTileOn(uint16_t tile, uint32_t color)
 {
     // Pick the correct LED index for this tile
-    int ledIndex = ledCount == 30 ? tileToLedIndexExpansion[tile] : tileToLedIndexClassic[tile];
+    int ledIndex = ledCount == 30 ? tileToLedIndexExtension[tile] : tileToLedIndexClassic[tile];
 
     if (strip != nullptr)
     {
@@ -88,7 +88,7 @@ void LedController::rollDiceAnimation()
     // For each LED, pick an index based on board mode.
     for (int i = count - 1; i >= 0; i--)
     {
-        int ledIndex = (count == 30 ? spiralLedIndexExpansion[i] : spiralLedIndexClassic[i]);
+        int ledIndex = (count == 30 ? spiralLedIndexExtension[i] : spiralLedIndexClassic[i]);
         // Generate a random color.
         uint8_t r = random(0, 256);
         uint8_t g = random(0, 256);
@@ -178,7 +178,7 @@ void LedController::animationTask(void *pvParameters)
             for (uint16_t i = 0; i < instance->ledCount && instance->animationRunning; i++)
             {
                 // Pick the correct LED index for this tile
-                int ledIndex = instance->ledCount == 30 ? spiralLedIndexExpansion[i] : spiralLedIndexClassic[i];
+                int ledIndex = instance->ledCount == 30 ? spiralLedIndexExtension[i] : spiralLedIndexClassic[i];
                 instance->strip->setPixelColor(ledIndex, instance->Color(255, 255, 255));
                 instance->strip->show();
                 vTaskDelay(delayMs / portTICK_PERIOD_MS);
@@ -186,7 +186,7 @@ void LedController::animationTask(void *pvParameters)
             // Turn off LEDs sequentially (reverse order).
             for (int i = instance->ledCount - 1; i >= 0 && instance->animationRunning; i--)
             {
-                int ledIndex = instance->ledCount == 30 ? spiralLedIndexExpansion[i] : spiralLedIndexClassic[i];
+                int ledIndex = instance->ledCount == 30 ? spiralLedIndexExtension[i] : spiralLedIndexClassic[i];
                 instance->strip->setPixelColor(ledIndex, 0);
                 instance->strip->show();
                 vTaskDelay(delayMs / portTICK_PERIOD_MS);
@@ -232,11 +232,11 @@ void LedController::animationTask(void *pvParameters)
         if (params->numTiles > 0)
         {
             // Determine board mode based on ledCount.
-            // Classic: 19 LEDs, Expansion: 30 LEDs.
-            bool isExpansion = (instance->ledCount == 30);
-            int tileCount = isExpansion ? 30 : 19;
-            const int *tileToLedIndex = isExpansion ? tileToLedIndexExpansion : tileToLedIndexClassic;
-            const int(*adjacencyList)[6] = isExpansion ? adjacencyListExtension : adjacencyListClassic;
+            // Classic: 19 LEDs, Extension: 30 LEDs.
+            bool isExtension = (instance->ledCount == 30);
+            int tileCount = isExtension ? 30 : 19;
+            const int *tileToLedIndex = isExtension ? tileToLedIndexExtension : tileToLedIndexClassic;
+            const int(*adjacencyList)[6] = isExtension ? adjacencyListExtension : adjacencyListClassic;
 
             // Processed array for BFS (size 30 covers both modes).
             bool processed[30] = {false};

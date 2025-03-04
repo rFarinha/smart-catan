@@ -14,7 +14,7 @@ struct Board
 // Structure to hold board generation options.
 struct BoardConfig
 {
-    bool isExpansion = false;          // Use expansion board if true.
+    bool isExtension = false;          // Use extension board if true.
     bool eightSixCanTouch = false;     // Option for 8/6 adjacency rules.
     bool twoTwelveCanTouch = false;    // Option for 2/12 adjacency rules.
     bool sameNumbersCanTouch = false;  // Option for same numbers touching.

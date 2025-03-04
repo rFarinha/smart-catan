@@ -1,6 +1,6 @@
 // Global flag for game state.
 let gameStarted = false;
-let expansion = false;
+let extension = false;
 let eight_six_canTouch = true;
 let two_twelve_canTouch = true;
 let sameNumbers_canTouch = true;
@@ -12,7 +12,7 @@ let currentSelectedNumber = 0;
 var numberButtons,
   diceRollButton,
   classicBtn,
-  expansionBtn,
+  extensionBtn,
   openSettingsBtn,
   option1,
   option2,
@@ -27,7 +27,7 @@ setInterval(() => {
     .then(response => response.json())
     .then(data => {
       gameStarted = data.gameStarted
-      expansion = data.expansion;
+      extension = data.extension;
       currentSelectedNumber = data.selectedNumber;
       updateStates(data);
     })
@@ -40,12 +40,12 @@ function updateStates(data) {
   generateBoard(data);
 
   // Update mode button labels based on the board's mode.
-  if (expansion) {
+  if (extension) {
     classicBtn.textContent = "Classic";
-    expansionBtn.textContent = "Shuffle";
+    extensionBtn.textContent = "Shuffle";
   } else {
     classicBtn.textContent = "Shuffle";
-    expansionBtn.textContent = "Expansion";
+    extensionBtn.textContent = "Extension";
   }
   // Disable buttons if game as started
   if (gameStarted) {
@@ -53,7 +53,7 @@ function updateStates(data) {
     numberButtons.style.display = "grid";
     diceRollButton.style.display = "block";
     classicBtn.disabled = true;
-    expansionBtn.disabled = true;
+    extensionBtn.disabled = true;
     openSettingsBtn.disabled = true;
     option1.disabled = true;
     option2.disabled = true;
@@ -65,7 +65,7 @@ function updateStates(data) {
     numberButtons.style.display = "none";
     diceRollButton.style.display = "none";
     classicBtn.disabled = false;
-    expansionBtn.disabled = false;
+    extensionBtn.disabled = false;
     openSettingsBtn.disabled = false;
     option1.disabled = false;
     option2.disabled = false;
@@ -86,38 +86,38 @@ function setClassic() {
   fetch('/setclassic')
     .then(response => response.json())
     .then(data => {
-      if (!data.expansion) {
-        expansion = false;
+      if (!data.extension) {
+        extension = false;
         updateStates(data);
       }
     })
     .catch(err => console.error("Set classic error:", err));
 }
 
-// -------------- Set Expansion --------------
-function setExpansion() {
-  fetch('/setexpansion')
+// -------------- Set Extension --------------
+function setExtension() {
+  fetch('/setextension')
     .then(response => response.json())
     .then(data => {
-      if (data.expansion) {
-        expansion = true;
+      if (data.extension) {
+        extension = true;
         updateStates(data);
       }
     })
-    .catch(err => console.error("Set expansion error:", err));
+    .catch(err => console.error("Set extension error:", err));
 }
 
 // -------------- Generate Board --------------
 // boardData should be an object with properties:
 //   resources: array of resource IDs,
 //   numbers: array of tokens (with desert hexes marked as 0 or similar),
-//   expansion: a boolean (true if expansion board, false if classic)
+//   extension: a boolean (true if extension board, false if classic)
 function generateBoard(boardData) {
   const boardDiv = document.getElementById('board');
   boardDiv.innerHTML = ''; // Clear any existing content
 
   // Determine row sizes based on board mode.
-  const rowSizes = boardData.expansion
+  const rowSizes = boardData.extension
     ? [4, 5, 6, 6, 5, 4]
     : [3, 4, 5, 4, 3];
 
@@ -127,12 +127,12 @@ function generateBoard(boardData) {
     const rowDiv = document.createElement('div');
     rowDiv.classList.add('row');
 
-    // For expansion mode, if this is the second 6-row (row index 3), add the offset.
-    // For expansion mode, if this is the second 6-row (row index 3), add the offset.
-    if (boardData.expansion && row < 3) {
+    // For extension mode, if this is the second 6-row (row index 3), add the offset.
+    // For extension mode, if this is the second 6-row (row index 3), add the offset.
+    if (boardData.extension && row < 3) {
       rowDiv.classList.add('offsetLeft');
     }
-    else if (boardData.expansion && row >= 3) {
+    else if (boardData.extension && row >= 3) {
       rowDiv.classList.add('offsetRight');
     }
 
@@ -245,7 +245,7 @@ function loadElementValues() {
   numberButtons = document.getElementById("numberButtons");
   diceRollButton = document.getElementById("diceRollButton");
   classicBtn = document.getElementById("classicBtn");
-  expansionBtn = document.getElementById("expansionBtn");
+  extensionBtn = document.getElementById("extensionBtn");
   openSettingsBtn = document.getElementById("openSettingsBtn");
   option1 = document.getElementById("option1");
   option2 = document.getElementById("option2");

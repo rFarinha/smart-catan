@@ -1,4 +1,6 @@
-// FIXME change all expansion names to extension
+// TODO change numbers to red
+// TODO new settings disable manual input numbers
+// FIXME classic adjacency
 // TODO HOME ASSISTANT
 // TODO CLEANING
 
@@ -34,7 +36,7 @@ const char *WIFI_PASS = "PlaceholderPassword";
 // ------------- PINS & LED STRIP -------------
 #define LED_STRIP_PIN 4
 #define LED_COUNT_CLASSIC 19
-#define LED_COUNT_EXPANSION 30
+#define LED_COUNT_EXTENSION 30
 
 // Create a global instance of the LedController
 LedController ledController(LED_STRIP_PIN, LED_COUNT_CLASSIC);
@@ -46,7 +48,7 @@ int selectedNumber;
 #define DEFAULT_TWO_TWELVE_CANTOUCH true
 #define DEFAULT_SAMENUMBERS_CANTOUCH true
 #define DEFAULT_SAMERESOURCE_CANTOUCH true
-#define DEFAULT_IS_EXPANSION false
+#define DEFAULT_IS_EXTENSION false
 
 bool gameStarted;
 
@@ -70,13 +72,13 @@ String generateJSON()
   JsonDocument doc;
   int ledNumber;
 
-  if (!boardConfig.isExpansion)
+  if (!boardConfig.isExtension)
   {
     ledNumber = LED_COUNT_CLASSIC;
   }
   else
   {
-    ledNumber = LED_COUNT_EXPANSION;
+    ledNumber = LED_COUNT_EXTENSION;
   }
 
   // Add the resources array.
@@ -93,8 +95,8 @@ String generateJSON()
     numbers.add(board.numbers[i]);
   }
 
-  // Include the game mode flag (classic mode => expansion is false)
-  doc["expansion"] = boardConfig.isExpansion;
+  // Include the game mode flag (classic mode => Extension is false)
+  doc["extension"] = boardConfig.isExtension;
   doc["gameStarted"] = gameStarted;
 
   // Include the game settings
@@ -169,7 +171,7 @@ void loadGameState()
     }
 
     // Load board configuration.
-    boardConfig.isExpansion = doc["expansion"];
+    boardConfig.isExtension = doc["extension"];
     boardConfig.eightSixCanTouch = doc["eightSixCanTouch"];
     boardConfig.twoTwelveCanTouch = doc["twoTwelveCanTouch"];
     boardConfig.sameNumbersCanTouch = doc["sameNumbersCanTouch"];
@@ -296,10 +298,10 @@ void handleSetClassic()
 {
   Serial.println("[/setclassic] Request received. Setting game as classic");
 
-  // Only reinitialize led strip if it was expansion before
-  if (boardConfig.isExpansion)
+  // Only reinitialize led strip if it was Extension before
+  if (boardConfig.isExtension)
   {
-    boardConfig.isExpansion = false;
+    boardConfig.isExtension = false;
     ledController.restart(LED_COUNT_CLASSIC);
   }
 
@@ -315,15 +317,15 @@ void handleSetClassic()
   Serial.println(jsonResponse);
 }
 
-void handleSetExpansion()
+void handleSetExtension()
 {
-  Serial.println("[/setexpansion] Request received. Setting game as expansion");
+  Serial.println("[/setextension] Request received. Setting game as Extension");
 
   // Only reinitialize led strip if the current count is not already 19
-  if (!boardConfig.isExpansion)
+  if (!boardConfig.isExtension)
   {
-    boardConfig.isExpansion = true;
-    ledController.restart(LED_COUNT_EXPANSION);
+    boardConfig.isExtension = true;
+    ledController.restart(LED_COUNT_EXTENSION);
   }
 
   createBoardTask();
@@ -345,7 +347,7 @@ void handleGetBoard()
   // If board hasn't been generated yet, generate one.
   if (gameLoaded)
   {
-    int totalHexes = boardConfig.isExpansion ? 30 : 19;
+    int totalHexes = boardConfig.isExtension ? LED_COUNT_EXTENSION : LED_COUNT_CLASSIC;
 
     // Generate the json data to send to the webpage
     String jsonResponse = generateJSON();
@@ -430,8 +432,8 @@ void handleSelectNumber()
 
 void turnOnNumber()
 {
-  // Determine how many tiles to check (19 for classic, 30 for expansion)
-  int tileCount = boardConfig.isExpansion ? 30 : 19;
+  // Determine how many tiles to check (19 for classic, 30 for Extension)
+  int tileCount = boardConfig.isExtension ? LED_COUNT_EXTENSION : LED_COUNT_CLASSIC;
   ledController.stopAnimation();
 
   // turn off all leds
@@ -439,7 +441,7 @@ void turnOnNumber()
 
   if (selectedNumber == 7)
   {
-    uint8_t requiredTiles = boardConfig.isExpansion ? 2 : 1;
+    uint8_t requiredTiles = boardConfig.isExtension ? 2 : 1;
     uint8_t foundCount = 0;
 
     // Allocate the array on the heap.
@@ -529,7 +531,7 @@ void setup()
   if (board.resources.size() == 0)
   {
     Serial.print("No settings in flash! Load Default");
-    boardConfig.isExpansion = DEFAULT_IS_EXPANSION;
+    boardConfig.isExtension = DEFAULT_IS_EXTENSION;
     boardConfig.eightSixCanTouch = DEFAULT_EIGHT_SIX_CANTOUCH;
     boardConfig.twoTwelveCanTouch = DEFAULT_TWO_TWELVE_CANTOUCH;
     boardConfig.sameNumbersCanTouch = DEFAULT_SAMENUMBERS_CANTOUCH;
@@ -548,7 +550,7 @@ void setup()
   randomSeed(micros());
 
   // Initialize LED strip
-  uint16_t ledCount = boardConfig.isExpansion ? 30 : 19;
+  uint16_t ledCount = boardConfig.isExtension ? LED_COUNT_EXTENSION : LED_COUNT_CLASSIC;
   ledController.begin(ledCount);
 
   if (board.resources.size() == 0)
@@ -569,7 +571,7 @@ void setup()
 
   // Set up server routes
   server.on("/setclassic", HTTP_GET, handleSetClassic);
-  server.on("/setexpansion", HTTP_GET, handleSetExpansion);
+  server.on("/setextension", HTTP_GET, handleSetExtension);
   server.on("/getboard", HTTP_GET, handleGetBoard);
   server.on("/getnumber", HTTP_GET, handleGetNumber);
   server.on("/startgame", HTTP_GET, handleStartGame);

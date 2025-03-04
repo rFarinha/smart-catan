@@ -15,7 +15,7 @@ static const int tileToLedIndexClassic[19] = {
     16, 17, 18};
 
 // Zig-zag mapping from hexagonal tile index -> LED index on the WS2812B strip.
-static const int tileToLedIndexExpansion[30] = {
+static const int tileToLedIndexExtension[30] = {
     // Row 1 (left to right): 0,1,2,3
     0, 1, 2, 3,
     // Row 2 (right to left): 8,7,6,5,4
@@ -32,7 +32,7 @@ static const int tileToLedIndexExpansion[30] = {
 static const int spiralLedIndexClassic[19] = {
     0, 1, 2, 3, 11, 12, 18, 17, 16, 15, 7, 6, 5, 4, 10, 13, 14, 8, 9};
 
-static const int spiralLedIndexExpansion[30] = {
+static const int spiralLedIndexExtension[30] = {
     0, 1, 2, 3, 4, 14, 15, 25, 26, 27, 28, 29, 21, 20, 9, 8, 7, 6, 5, 13, 16, 24, 23, 22, 19, 10, 11, 12, 17, 18};
 
 #endif

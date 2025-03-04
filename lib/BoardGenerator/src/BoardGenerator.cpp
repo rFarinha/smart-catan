@@ -22,15 +22,15 @@ void shuffleVector(std::vector<int> &vec)
     }
 }
 
-std::vector<int> generateResources(bool isExpansion, bool sameResourceCanTouch)
+std::vector<int> generateResources(bool isExtension, bool sameResourceCanTouch)
 {
     Serial.println("Start generating resources");
-    int totalHexes = isExpansion ? 30 : 19;
+    int totalHexes = isExtension ? 30 : 19;
 
     // Define resource counts:
     // Classic: 4 sheep (0), 4 wood (1), 4 wheat (2), 3 brick (3), 3 ore (4), 1 desert (5)
-    // Expansion: 6 sheep (0), 6 wood (1), 6 wheat (2), 5 brick (3), 5 ore (4), 2 deserts (5)
-    std::vector<int> resourceCounts = isExpansion ? std::vector<int>{6, 6, 6, 5, 5, 2}
+    // Extension: 6 sheep (0), 6 wood (1), 6 wheat (2), 5 brick (3), 5 ore (4), 2 deserts (5)
+    std::vector<int> resourceCounts = isExtension ? std::vector<int>{6, 6, 6, 5, 5, 2}
                                                   : std::vector<int>{4, 4, 4, 3, 3, 1};
 
     // If sameResourceCanTouch is true, simply generate the resource vector and shuffle it.
@@ -53,7 +53,7 @@ std::vector<int> generateResources(bool isExpansion, bool sameResourceCanTouch)
     {
         // Otherwise, enforce that adjacent tiles don't share the same resource.
         std::vector<int> board(totalHexes, -1);
-        const int(*adjacencyList)[6] = isExpansion ? adjacencyListExtension : adjacencyListClassic;
+        const int(*adjacencyList)[6] = isExtension ? adjacencyListExtension : adjacencyListClassic;
 
         std::mt19937 rng(esp_random());
 
@@ -116,21 +116,21 @@ std::vector<int> generateResources(bool isExpansion, bool sameResourceCanTouch)
     }
 }
 
-std::vector<int> generateNumbers(bool isExpansion,
+std::vector<int> generateNumbers(bool isExtension,
                                  bool eightSixCanTouch,
                                  bool twoTwelveCanTouch,
                                  bool sameNumbersCanTouch,
                                  const std::vector<int> &resourceMap)
 {
     Serial.println("Start generating numbers");
-    int totalHexes = isExpansion ? 30 : 19;
+    int totalHexes = isExtension ? 30 : 19;
     std::mt19937 rng(esp_random());
 
     // Helper lambda to initialize token counts.
-    auto initTokenCounts = [isExpansion]() -> std::unordered_map<int, int>
+    auto initTokenCounts = [isExtension]() -> std::unordered_map<int, int>
     {
         std::unordered_map<int, int> tokenCounts;
-        if (!isExpansion)
+        if (!isExtension)
         {
             tokenCounts[2] = 1;
             tokenCounts[3] = 2;
@@ -160,7 +160,7 @@ std::vector<int> generateNumbers(bool isExpansion,
     };
 
     // Select the appropriate adjacency list.
-    const int(*adjacencyList)[6] = isExpansion ? adjacencyListExtension : adjacencyListClassic;
+    const int(*adjacencyList)[6] = isExtension ? adjacencyListExtension : adjacencyListClassic;
 
     // Outer loop: Keep trying until a complete board is generated.
     while (true)
@@ -260,8 +260,8 @@ std::vector<int> generateNumbers(bool isExpansion,
 Board generateBoard(const BoardConfig &config)
 {
     Board board;
-    board.resources = generateResources(config.isExpansion, config.sameResourceCanTouch);
-    board.numbers = generateNumbers(config.isExpansion,
+    board.resources = generateResources(config.isExtension, config.sameResourceCanTouch);
+    board.numbers = generateNumbers(config.isExtension,
                                     config.eightSixCanTouch,
                                     config.twoTwelveCanTouch,
                                     config.sameNumbersCanTouch,

@@ -1,5 +1,5 @@
 :root {
-  /* The widest row in expansion mode has 6.5 hexes */
+  /* The widest row in extension mode has 6.5 hexes */
   --max-hex-count: 6.5;
   /* Any horizontal padding for the board (total, e.g., left + right) */
   --board-padding: 20px;
