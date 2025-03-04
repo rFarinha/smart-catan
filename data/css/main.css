@@ -188,21 +188,40 @@ button:hover {
   font-size: 1.5em;
   /* Increase font size as needed */
   padding: 0px;
-  /* Adjust padding to match your design */
-  background: #555;
-  color: #fff;
 }
 
 .small-button button {
   width: 40px;
   margin: 2px;
-  background: #555;
-  color: #fff;
   border-radius: 4px;
 }
 
-#numberButtons button:hover {
-  background: #333;
+@media (hover: hover) and (pointer: fine) {
+  #numberButtons button:hover {
+    background: #333;
+  }
+}
+
+/* For small buttons */
+#numberButtonsRows button.red {
+  background: red;
+  color: #fff;
+}
+
+#numberButtonsRows button.black {
+  background: #555;
+  color: #fff;
+}
+
+/* For the big 7 button */
+#bigSeven.red {
+  background: red;
+  color: #fff;
+}
+
+#bigSeven.black {
+  background: #555;
+  color: #fff;
 }
 
 /* Basic modal for Settings (unchanged) */

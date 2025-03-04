@@ -1,4 +1,3 @@
-// TODO change numbers to red
 // TODO new settings disable manual input numbers
 // FIXME classic adjacency
 // TODO HOME ASSISTANT

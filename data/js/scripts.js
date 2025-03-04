@@ -79,6 +79,8 @@ function updateStates(data) {
   option4.checked = data.sameResourceCanTouch;
 
   updateBoardColors(currentSelectedNumber);
+
+  updateNumberButtonColors(currentSelectedNumber);
 }
 
 // -------------- Set Classic --------------
@@ -215,6 +217,7 @@ function selectNumber(n) {
       console.log("Server responded:", data);
       currentSelectedNumber = Number(data);
       updateBoardColors(currentSelectedNumber);
+      updateNumberButtonColors(currentSelectedNumber);
     })
     .catch(err => console.error("Error sending number:", err));
 }
@@ -228,6 +231,7 @@ function rollDice() {
       console.log("Server responded:", data);
       currentSelectedNumber = Number(data);
       updateBoardColors(currentSelectedNumber);
+      updateNumberButtonColors(currentSelectedNumber);
     })
     .catch(err => console.error("Error sending number:", err));
 }
@@ -318,4 +322,29 @@ function updateBoardColors(selectedNumber) {
     }
 
   });
+}
+
+// Function to update number button colors
+function updateNumberButtonColors(selectedNumber) {
+  // Update the small buttons (for numbers 2,3,4,5,6,8,9,10,11,12)
+  const smallButtons = document.querySelectorAll("#numberButtonsRows button");
+  smallButtons.forEach(btn => {
+    if (btn.textContent.trim() === String(selectedNumber)) {
+      btn.classList.add("red");
+      btn.classList.remove("black");
+    } else {
+      btn.classList.remove("red");
+      btn.classList.add("black");
+    }
+  });
+
+  // Update the big button for 7 separately
+  const bigSeven = document.getElementById("bigSeven");
+  if (selectedNumber === 7) {
+    bigSeven.classList.add("red");
+    bigSeven.classList.remove("black");
+  } else {
+    bigSeven.classList.remove("red");
+    bigSeven.classList.add("black");
+  }
 }
