@@ -1,4 +1,3 @@
-// FIXME classic adjacency
 // TODO HOME ASSISTANT
 // TODO CLEANING
 
