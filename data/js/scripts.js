@@ -26,6 +26,7 @@ setInterval(() => {
   fetch('/getboard')
     .then(response => response.json())
     .then(data => {
+      gameStarted = data.gameStarted
       expansion = data.expansion;
       currentSelectedNumber = data.selectedNumber;
       updateStates(data);
@@ -47,7 +48,7 @@ function updateStates(data) {
     expansionBtn.textContent = "Expansion";
   }
   // Disable buttons if game as started
-  if (data.gameStarted) {
+  if (gameStarted) {
     // Show number buttons and disable mode/options.
     numberButtons.style.display = "block";
     diceRollButton.style.display = "block";
