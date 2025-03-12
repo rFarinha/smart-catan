@@ -1,7 +1,26 @@
-// TODO HOME ASSISTANT
-// TODO CLEANING
+/**
+ * Catan Board Generator for ESP32
+ *
+ * This project provides a web interface for generating and displaying
+ * randomized Catan boards with configurable placement rules. It includes
+ * LED visualization using WS2812B LED strips, configurable game settings,
+ * and support for both classic and extension Catan board layouts.
+ *
+ * Hardware Requirements:
+ * - ESP32 development board
+ * - WS2812B addressable LED strip (19 LEDs for classic mode, 30 for extension)
+ * - Power supply for LEDs
+ *
+ * Features:
+ * - Web-based interface accessible via WiFi
+ * - Configurable board generation rules
+ * - Physical LED board visualization
+ * - Game state persistence through power cycles
+ * - Support for classic (19 hexes) and extension (30 hexes) boards
+ * - Home Assistant integration
+ */
 
-// External
+// External Libraries
 #include <Arduino.h>
 #include <WebServer.h>
 #include <FS.h>
@@ -9,69 +28,77 @@
 #include <ArduinoJson.h>
 #include <SPIFFS.h>
 
-// Internal
+// Internal Project Headers
 #include "BoardGenerator.h"
 #include "password.h"
 #include "WebPage.h"
 #include "LedController.h"
 
-// Increase this value if you continue to get stack overflows.
-#define BOARD_GEN_STACK_SIZE 8192
-#define BOARD_GEN_TASK_PRIORITY 1
-#define BOARD_GEN_TASK_CORE 1 // or 0, depending on your design
+// Configuration for background task handling
+#define BOARD_GEN_STACK_SIZE 8192 // Stack size for board generation task
+#define BOARD_GEN_TASK_PRIORITY 1 // Priority level for the task
+#define BOARD_GEN_TASK_CORE 1     // Core to run the task on (ESP32 has 2 cores)
 
-volatile bool boardReady = true; // global flag
-bool gameLoaded = false;
+// Global State Variables
+volatile bool boardReady = true; // Indicates if board generation is complete
+bool gameLoaded = false;         // Indicates if a saved game was loaded
 
-// ------------- WIFI Credentials -------------
+// WiFi Credentials
+// Note: These are placeholders. Actual credentials should be defined in password.h
 #ifndef PASSWORD_H
 #define PASSWORD_H
 const char *WIFI_SSID = "PlaceholderSSID";
 const char *WIFI_PASS = "PlaceholderPassword";
 #endif
 
-// ------------- PINS & LED STRIP -------------
-#define LED_STRIP_PIN 4
-#define LED_COUNT_CLASSIC 19
-#define LED_COUNT_EXTENSION 30
+// Hardware Configuration
+#define LED_STRIP_PIN 4        // GPIO pin connected to the WS2812B data line
+#define LED_COUNT_CLASSIC 19   // Number of LEDs for classic board
+#define LED_COUNT_EXTENSION 30 // Number of LEDs for extension board
 
-// Create a global instance of the LedController
+// Initialize LED controller
 LedController ledController(LED_STRIP_PIN, LED_COUNT_CLASSIC);
 
+// Currently selected dice number (2-12, 0 means none selected)
 int selectedNumber;
 
-//---------------SETTINGS----------------------
-#define DEFAULT_EIGHT_SIX_CANTOUCH true
-#define DEFAULT_TWO_TWELVE_CANTOUCH true
-#define DEFAULT_SAMENUMBERS_CANTOUCH true
-#define DEFAULT_SAMERESOURCE_CANTOUCH true
-#define DEFAULT_MANUAL_DICE false
-#define DEFAULT_IS_EXTENSION false
+// Default Configuration Settings
+#define DEFAULT_EIGHT_SIX_CANTOUCH true    // Can 6 & 8 tokens be adjacent?
+#define DEFAULT_TWO_TWELVE_CANTOUCH true   // Can 2 & 12 tokens be adjacent?
+#define DEFAULT_SAMENUMBERS_CANTOUCH true  // Can identical token numbers be adjacent?
+#define DEFAULT_SAMERESOURCE_CANTOUCH true // Can identical resources be adjacent?
+#define DEFAULT_MANUAL_DICE false          // Allow manual dice number selection?
+#define DEFAULT_IS_EXTENSION false         // Start in extension mode?
 
-bool manualDice;
+// Game state variables
+bool manualDice;  // Manual dice selection enabled?
+bool gameStarted; // Is game currently active?
 
-bool gameStarted;
+// Web Server Setup
+WebServer server(80); // HTTP server on port 80
+String htmlPage;      // Stores the HTML content
 
-// ------------- WEB SERVER -------------------
-WebServer server(80);
-// store HTML content
-String htmlPage;
-
-// ------------- CATAN DATA -------------------
-Board board;
-BoardConfig boardConfig;
+// Catan Game Data
+Board board;             // Current board layout
+BoardConfig boardConfig; // Board configuration settings
 
 //---------------------------------------------------------------
-//                 UTILS
+//                 UTILITY FUNCTIONS
 //---------------------------------------------------------------
 
+/**
+ * Creates a JSON representation of the current game state
+ *
+ * @return String containing JSON data with board configuration,
+ *         resource placement, number tokens, and game settings
+ */
 String generateJSON()
 {
-  // Create a JSON document.
-  // Allocate the JSON document
+  // Create a JSON document
   JsonDocument doc;
   int ledNumber;
 
+  // Determine number of hexes/LEDs based on board mode
   if (!boardConfig.isExtension)
   {
     ledNumber = LED_COUNT_CLASSIC;
@@ -81,21 +108,21 @@ String generateJSON()
     ledNumber = LED_COUNT_EXTENSION;
   }
 
-  // Add the resources array.
+  // Add the resources array
   JsonArray resources = doc["resources"].to<JsonArray>();
   for (int i = 0; i < ledNumber; i++)
   {
     resources.add(board.resources[i]);
   }
 
-  // Add the numbers array.
+  // Add the numbers array
   JsonArray numbers = doc["numbers"].to<JsonArray>();
   for (int i = 0; i < ledNumber; i++)
   {
     numbers.add(board.numbers[i]);
   }
 
-  // Include the game mode flag (classic mode => Extension is false)
+  // Include the game mode and state flags
   doc["extension"] = boardConfig.isExtension;
   doc["gameStarted"] = gameStarted;
 
@@ -106,23 +133,26 @@ String generateJSON()
   doc["sameResourceCanTouch"] = boardConfig.sameResourceCanTouch;
   doc["manualDice"] = manualDice;
 
-  // Include Turn on led
+  // Include currently selected number
   doc["selectedNumber"] = selectedNumber;
 
-  // Serialize the JSON document to a string.
+  // Serialize the JSON document to a string
   String jsonResponse;
   serializeJson(doc, jsonResponse);
 
   return jsonResponse;
 }
 
-// Save the current game state to flash
+/**
+ * Saves the current game state to the ESP32's flash memory
+ * This allows persisting the game through power cycles
+ */
 void saveGameState()
 {
-  // Generate the json data to send to the webpage
+  // Generate the json data
   String jsonString = generateJSON();
 
-  // Write to SPIFFS
+  // Write to SPIFFS (SPI Flash File System)
   File file = SPIFFS.open("/gamestate.json", FILE_WRITE);
   if (!file)
   {
@@ -134,7 +164,9 @@ void saveGameState()
   Serial.println("Game state saved to flash.");
 }
 
-// Delete the saved game state from flash
+/**
+ * Deletes any saved game state from flash memory
+ */
 void deleteGameState()
 {
   if (SPIFFS.exists("/gamestate.json"))
@@ -144,6 +176,9 @@ void deleteGameState()
   }
 }
 
+/**
+ * Loads a previously saved game state from flash memory
+ */
 void loadGameState()
 {
   Serial.print("Load Start!");
@@ -161,7 +196,7 @@ void loadGameState()
     Serial.println(jsonString);
     file.close();
 
-    // Create a dynamic JSON document.
+    // Parse the JSON document
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, jsonString);
     if (error)
@@ -171,7 +206,7 @@ void loadGameState()
       return;
     }
 
-    // Load board configuration.
+    // Load board configuration
     boardConfig.isExtension = doc["extension"];
     boardConfig.eightSixCanTouch = doc["eightSixCanTouch"];
     boardConfig.twoTwelveCanTouch = doc["twoTwelveCanTouch"];
@@ -182,7 +217,7 @@ void loadGameState()
     gameStarted = doc["gameStarted"];
     selectedNumber = doc["selectedNumber"];
 
-    // Load board resources and numbers.
+    // Load board resources and numbers
     board.resources.clear();
     board.numbers.clear();
 
@@ -201,29 +236,36 @@ void loadGameState()
   }
   else
   {
-    Serial.println("Game state loaded from flash failed!");
+    Serial.println("No saved game state found in flash!");
   }
 }
 
 // --------------------------------------------------------------
-//                  SERVER HANDLERS
+//                  SERVER HANDLER FUNCTIONS
 // --------------------------------------------------------------
-// This task runs board generation in its own FreeRTOS task.
+
+/**
+ * FreeRTOS task that handles board generation in a separate thread
+ * This prevents blocking the main loop during board calculation
+ */
 void boardGenerationTask(void *pvParameters)
 {
   Serial.println("Board generation task started.");
 
-  // Use the current boardConfig to generate a board.
+  // Use the current boardConfig to generate a board
   board = generateBoard(boardConfig);
 
-  // You could now signal that the board is ready, update LEDs, etc.
+  // Signal that the board is ready
   Serial.println("Board generation complete.");
   boardReady = true;
 
-  // Delete the task when finished if it's a one-off.
+  // Delete the task when finished
   vTaskDelete(NULL);
 }
 
+/**
+ * Creates a new task for board generation
+ */
 void createBoardTask()
 {
   // Reset flag and create the board generation task
@@ -231,17 +273,16 @@ void createBoardTask()
   {
     boardReady = false;
     xTaskCreatePinnedToCore(
-        boardGenerationTask,
-        "BoardGenTask",
-        8192, // Increased stack size
-        NULL,
-        1, // Priority
-        NULL,
-        1 // Run on core 1 (adjust if needed)
+        boardGenerationTask, // Task function
+        "BoardGenTask",      // Task name
+        8192,                // Stack size (bytes)
+        NULL,                // Parameters
+        1,                   // Priority
+        NULL,                // Task handle
+        1                    // Run on core 1
     );
 
-    // Wait until the board generation task is done.
-    // (Be cautious with long delays; adjust timeout as needed.)
+    // Wait until the board generation task is done
     while (!boardReady)
     {
       delay(10); // Yield to other tasks
@@ -249,23 +290,30 @@ void createBoardTask()
   }
 }
 
-// Serve the main HTML page
+/**
+ * Web server handler for the root path
+ * Serves the main HTML page
+ */
 void handleRoot()
 {
   server.send(200, "text/html", htmlPage);
 }
 
-// Update Config: 6 & 8 Can Touch
+/**
+ * Web server handler to update the "6 & 8 Can Touch" setting
+ */
 void handleUpdateEightSixCanTouch()
 {
-  String value = server.arg("value"); // Expecting "1" for true or "0" for false
+  String value = server.arg("value"); // "1" for true or "0" for false
   boardConfig.eightSixCanTouch = (value == "1");
   Serial.print("8 & 6 Can Touch set to: ");
   Serial.println(boardConfig.eightSixCanTouch ? "true" : "false");
   server.send(200, "text/plain", "eightSixCanTouch updated");
 }
 
-// Update Config: 2 & 12 Can Touch
+/**
+ * Web server handler to update the "2 & 12 Can Touch" setting
+ */
 void handleUpdateTwoTwelveCanTouch()
 {
   String value = server.arg("value");
@@ -275,7 +323,9 @@ void handleUpdateTwoTwelveCanTouch()
   server.send(200, "text/plain", "twoTwelveCanTouch updated");
 }
 
-// Update Config: Same Numbers Can Touch
+/**
+ * Web server handler to update the "Same Numbers Can Touch" setting
+ */
 void handleUpdateSameNumbersCanTouch()
 {
   String value = server.arg("value");
@@ -285,7 +335,9 @@ void handleUpdateSameNumbersCanTouch()
   server.send(200, "text/plain", "sameNumbersCanTouch updated");
 }
 
-// Update Config: Same Resource Can Touch
+/**
+ * Web server handler to update the "Same Resource Can Touch" setting
+ */
 void handleUpdateSameResourceCanTouch()
 {
   String value = server.arg("value");
@@ -295,6 +347,9 @@ void handleUpdateSameResourceCanTouch()
   server.send(200, "text/plain", "sameResourceCanTouch updated");
 }
 
+/**
+ * Web server handler to update the "Manual Dice" setting
+ */
 void handleUpdateManualDice()
 {
   String value = server.arg("value");
@@ -304,127 +359,143 @@ void handleUpdateManualDice()
   server.send(200, "text/plain", "manualDice updated");
 }
 
-// Set game as Classic
+/**
+ * Web server handler to set or shuffle classic board mode
+ */
 void handleSetClassic()
 {
   Serial.println("[/setclassic] Request received. Setting game as classic");
 
-  // Only reinitialize led strip if it was Extension before
+  // Only reinitialize LED strip if it was in Extension mode before
   if (boardConfig.isExtension)
   {
     boardConfig.isExtension = false;
     ledController.restart(LED_COUNT_CLASSIC);
   }
 
+  // Generate a new board
   createBoardTask();
 
-  // Generate the json data to send to the webpage
+  // Send the JSON response
   String jsonResponse = generateJSON();
-
-  // Send the JSON response over your web server
   server.send(200, "application/json", jsonResponse);
 
-  // debug
+  // Debug output
   Serial.println(jsonResponse);
 }
 
+/**
+ * Web server handler to set or shuffle extension board mode
+ */
 void handleSetExtension()
 {
   Serial.println("[/setextension] Request received. Setting game as Extension");
 
-  // Only reinitialize led strip if the current count is not already 19
+  // Only reinitialize LED strip if it was in Classic mode before
   if (!boardConfig.isExtension)
   {
     boardConfig.isExtension = true;
     ledController.restart(LED_COUNT_EXTENSION);
   }
 
+  // Generate a new board
   createBoardTask();
 
-  // Generate the json data to send to the webpage
+  // Send the JSON response
   String jsonResponse = generateJSON();
-
-  // Send the JSON response over your web server
   server.send(200, "application/json", jsonResponse);
 
-  // debug
+  // Debug output
   Serial.println(jsonResponse);
 }
 
-// GET current board state
+/**
+ * Web server handler to get current board state
+ */
 void handleGetBoard()
 {
   Serial.println("[/getboard] Request received. Returning current board state.");
-  // If board hasn't been generated yet, generate one.
+  // Only respond if the board has been initialized
   if (gameLoaded)
   {
     int totalHexes = boardConfig.isExtension ? LED_COUNT_EXTENSION : LED_COUNT_CLASSIC;
 
-    // Generate the json data to send to the webpage
+    // Generate the json data
     String jsonResponse = generateJSON();
 
-    // Send the JSON response over your web server
+    // Send the JSON response
     server.send(200, "application/json", jsonResponse);
 
-    // debug
+    // Debug output
     Serial.println(jsonResponse);
   }
 }
 
-// GET current number state
+/**
+ * Web server handler to get currently selected number
+ */
 void handleGetNumber()
 {
   Serial.println("[/getnumber] Request received. Returning current selected number.");
-  // Send the JSON response over your web server
   server.send(200, "application/json", String(selectedNumber));
 }
 
-// Start Game: generate a new board and mark game as started.
+/**
+ * Web server handler to start a new game
+ * Locks the board configuration and begins gameplay
+ */
 void handleStartGame()
 {
   Serial.println("[/startgame] Request received. Starting game.");
   gameStarted = true;
 
+  // Run start game animation on LEDs
   ledController.stopAnimation();
   ledController.startAnimation(START_GAME_ANIMATION, nullptr, 0, 250);
 
-  // Generate the json data to send to the webpage
+  // Generate JSON response
   String jsonResponse = generateJSON();
 
-  // Save the game state to flash.
+  // Save game state to flash for persistence
   saveGameState();
 
-  // Send the JSON response over your web server
+  // Send the response
   server.send(200, "application/json", jsonResponse);
 
-  // debug
+  // Debug output
   Serial.println(jsonResponse);
 }
 
-// End Game: mark game as ended and return a new board state.
+/**
+ * Web server handler to end the current game
+ * Unlocks board configuration
+ */
 void handleEndGame()
 {
   Serial.println("[/endgame] Request received. Ending game.");
   gameStarted = false;
   selectedNumber = 0;
 
-  // Restart Waiting animation
+  // Restart the waiting animation
   ledController.startAnimation(WAITING_ANIMATION, nullptr, 0, 50);
 
-  // Delete the saved game state.
+  // Delete the saved game state
   deleteGameState();
 
-  // Generate the json data to send to the webpage
+  // Generate JSON response
   String jsonResponse = generateJSON();
 
-  // Send the JSON response over your web server
+  // Send the response
   server.send(200, "application/json", jsonResponse);
 
-  // debug
+  // Debug output
   Serial.println(jsonResponse);
 }
 
-// Web server handle function that updates the LEDs based on the selected number.
+/**
+ * Web server handler to select a number during gameplay
+ * Updates the selected number and highlights corresponding tiles
+ */
 void handleSelectNumber()
 {
   // Get the number sent from the client
@@ -433,115 +504,132 @@ void handleSelectNumber()
   Serial.print("[/selectNumber] Number selected: ");
   Serial.println(selectedNumber);
 
+  // Update LEDs to reflect the selected number
   turnOnNumber();
 
+  // Save the current game state
   saveGameState();
 
-  // Respond to the client.
+  // Respond to the client
   server.send(200, "text/plain", value);
 }
 
+/**
+ * Updates the LED display based on the currently selected number
+ * For normal numbers (2-6, 8-12): Lights up hexes with that number
+ * For 7 (robber): Triggers the robber animation
+ */
 void turnOnNumber()
 {
-  // Determine how many tiles to check (19 for classic, 30 for Extension)
+  // Determine number of tiles based on board mode
   int tileCount = boardConfig.isExtension ? LED_COUNT_EXTENSION : LED_COUNT_CLASSIC;
   ledController.stopAnimation();
 
-  // turn off all leds
+  // Turn off all LEDs before applying new state
   ledController.turnOffAllLeds();
 
   if (selectedNumber == 7)
   {
+    // Special handling for the robber (7)
     uint8_t requiredTiles = boardConfig.isExtension ? 2 : 1;
     uint8_t foundCount = 0;
 
-    // Allocate the array on the heap.
+    // Allocate array for desert tiles (robber locations)
     uint16_t *robberTiles = new uint16_t[requiredTiles];
 
+    // Find desert tiles (number token 0)
     for (int tile = 0; tile < tileCount && foundCount < requiredTiles; tile++)
     {
-      // Assuming the desert tile has number 0.
       if (board.numbers[tile] == 0)
       {
-        Serial.print("found at tile: ");
+        Serial.print("Desert found at tile: ");
         Serial.println(tile);
         robberTiles[foundCount++] = tile;
       }
     }
-    // Pass the dynamically allocated array to the animation task.
-    ledController.startAnimation(ROBBER_ANIMATION, robberTiles, requiredTiles, 500);
+
+    // Start robber animation from the desert tiles
+    ledController.startAnimation(ROBBER_ANIMATION, robberTiles, foundCount, 500);
   }
   else
   {
-    // Loop through each tile on the board.
+    // For regular numbers, highlight matching hexes
     for (int tile = 0; tile < tileCount; tile++)
     {
-      // If the board's number on this tile matches the selected number, light the LED;
-      // otherwise, turn it off.
       if (board.numbers[tile] == selectedNumber)
       {
         ledController.turnTileOn(tile, ledController.Color(255, 255, 255));
       }
       else
       {
-        // Turn off the LED.
+        // Turn off LEDs for non-matching tiles
         ledController.turnTileOn(tile, 0);
       }
     }
 
-    // Update the LED strip to show the changes.
+    // Update the LED strip
     ledController.update();
   }
 }
 
+/**
+ * Web server handler to simulate rolling dice
+ * Generates random dice values and updates the display
+ */
 void handleRollDice()
 {
   // Roll two dice (each die: 1 to 6)
-  int die1 = random(1, 7); // random(1, 7) generates numbers from 1 to 6
+  int die1 = random(1, 7);
   int die2 = random(1, 7);
   selectedNumber = die1 + die2;
 
-  // Run the LED animation from the library.
+  // Run a dice roll animation on the LEDs
   ledController.rollDiceAnimation();
 
-  // turn off all leds due to animation ending with all on
+  // Turn off all LEDs (animation ends with all on)
   ledController.turnOffAllLeds();
 
-  // Convert the total sum into a string
+  // Convert the total to a string
   String result = String(selectedNumber);
 
-  // After the animation, update the board using your turnOnNumber() function.
+  // Update the board display
   turnOnNumber();
 
+  // Save the current game state
   saveGameState();
 
-  // Respond to the client with the dice total
+  // Respond to the client with the dice result
   server.send(200, "text/plain", result);
 }
 
 // --------------------------------------------------------------
 //                  SETUP & LOOP
 // --------------------------------------------------------------
+
+/**
+ * Arduino setup function - runs once at startup
+ * Initializes hardware, loads configuration, and starts the web server
+ */
 void setup()
 {
+  // Initialize serial communication
   Serial.begin(115200);
-  delay(2000);
+  delay(2000); // Short delay for serial port to initialize
 
-  // Initialize SPIFFS
+  // Initialize the SPI Flash File System
   if (!SPIFFS.begin(true))
   {
     Serial.println("An Error has occurred while mounting SPIFFS");
     return;
   }
 
-  // Attempt to load the saved game state.
+  // Attempt to load saved game state
   loadGameState();
 
-  // Initialize board default values
-  // If no game state was loaded, then set default board config.
+  // If no game state was loaded, set default configuration
   if (board.resources.size() == 0)
   {
-    Serial.print("No settings in flash! Load Default");
+    Serial.print("No settings in flash! Loading defaults");
     boardConfig.isExtension = DEFAULT_IS_EXTENSION;
     boardConfig.eightSixCanTouch = DEFAULT_EIGHT_SIX_CANTOUCH;
     boardConfig.twoTwelveCanTouch = DEFAULT_TWO_TWELVE_CANTOUCH;
@@ -555,34 +643,39 @@ void setup()
   // Connect to WiFi
   connectWifi(WIFI_SSID, WIFI_PASS);
 
-  // Open and read the HTML file once
+  // Load HTML content from SPIFFS
   readHtml(htmlPage, server);
 
-  // Seed the random number generator so we get fresh random sequences
+  // Seed the random number generator
   randomSeed(micros());
 
-  // Initialize LED strip
+  // Initialize LED strip based on board mode
   uint16_t ledCount = boardConfig.isExtension ? LED_COUNT_EXTENSION : LED_COUNT_CLASSIC;
   ledController.begin(ledCount);
 
+  // Start appropriate LED animation
   if (board.resources.size() == 0)
   {
+    // If no board loaded, show waiting animation
     ledController.startAnimation(WAITING_ANIMATION, nullptr, 0, 50);
   }
   else
   {
+    // If board loaded, show current selected number
     turnOnNumber();
   }
+
   // Set up server routes
   server.on("/", HTTP_GET, handleRoot);
-  // Endpoints for updating settings:
+
+  // Settings endpoints
   server.on("/eightSixCanTouch", HTTP_GET, handleUpdateEightSixCanTouch);
   server.on("/twoTwelveCanTouch", HTTP_GET, handleUpdateTwoTwelveCanTouch);
   server.on("/sameNumbersCanTouch", HTTP_GET, handleUpdateSameNumbersCanTouch);
   server.on("/sameResourceCanTouch", HTTP_GET, handleUpdateSameResourceCanTouch);
   server.on("/manualDice", HTTP_GET, handleUpdateManualDice);
 
-  // Set up server routes
+  // Game control endpoints
   server.on("/setclassic", HTTP_GET, handleSetClassic);
   server.on("/setextension", HTTP_GET, handleSetExtension);
   server.on("/getboard", HTTP_GET, handleGetBoard);
@@ -592,18 +685,18 @@ void setup()
   server.on("/selectNumber", HTTP_GET, handleSelectNumber);
   server.on("/rollDice", HTTP_GET, handleRollDice);
 
-  // Only generate a new board if none was loaded.
+  // Generate a new board if none was loaded
   if (board.resources.size() == 0)
   {
-    Serial.print("No board loaded, generate board!");
+    Serial.print("No board loaded, generating new board!");
     xTaskCreatePinnedToCore(
-        boardGenerationTask,     // Task function.
-        "BoardGenTask",          // Name of task.
-        BOARD_GEN_STACK_SIZE,    // Stack size in words.
-        NULL,                    // Task input parameter.
-        BOARD_GEN_TASK_PRIORITY, // Task priority.
-        NULL,                    // Task handle.
-        BOARD_GEN_TASK_CORE      // Core where the task should run.
+        boardGenerationTask,     // Task function
+        "BoardGenTask",          // Task name
+        BOARD_GEN_STACK_SIZE,    // Stack size
+        NULL,                    // Parameters
+        BOARD_GEN_TASK_PRIORITY, // Priority
+        NULL,                    // Task handle
+        BOARD_GEN_TASK_CORE      // Core to run on
     );
   }
   else
@@ -611,13 +704,18 @@ void setup()
     Serial.println("Using saved board state.");
   }
 
-  // Start server
+  // Start the web server
   server.begin();
   Serial.println("HTTP server started.");
 
+  // Mark initialization as complete
   gameLoaded = true;
 }
 
+/**
+ * Arduino loop function - runs repeatedly
+ * Handles web server client requests
+ */
 void loop()
 {
   server.handleClient();
