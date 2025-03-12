@@ -5,7 +5,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Catan Board Generator</title>
+  <!-- Include Font Awesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <!-- Include main CSS file -->
   <link rel="stylesheet" type="text/css" href="/css/main.css">
 </head>
 
@@ -13,30 +15,33 @@
   <h1>Catan Board Game Generator</h1>
   <p>Choose Classic or Extension.</p>
 
-  <!-- Mode Buttons and Settings -->
+  <!-- Top button bar containing mode selectors, settings and dice buttons -->
   <div class="top-buttons">
+    <!-- Mode selection buttons -->
     <button id="classicBtn" onclick="setClassic()">Classic</button>
     <button id="extensionBtn" onclick="setExtension()">Extension</button>
+    <!-- Settings button with gear icon -->
     <button class="gear-button" id="openSettingsBtn">
       <i class="fas fa-cog"></i>
     </button>
-    <!-- Roll Dice Button -->
+    <!-- Dice roll button (hidden initially, shown during gameplay) -->
     <button id="diceRollButton" class="dice-roll-btn" style="display:none;" onclick="rollDice()">
       <i class="fa-solid fa-dice"></i>
     </button>
   </div>
 
-  <!-- Board Container -->
+  <!-- Main board container -->
   <div class="board-wrapper">
     <div class="board" id="board"></div>
   </div>
 
-  <!-- Start Game Button -->
+  <!-- Start/End Game button - text changes based on game state -->
   <button class="start-game-btn" onclick="startGame()">Start Game</button>
 
-  <!-- Number Buttons (initially hidden) -->
+  <!-- Number selection buttons (initially hidden, shown during gameplay) -->
   <div id="numberButtons" style="display:none;">
     <div id="numberButtonsRows">
+      <!-- First row of number buttons (2-6) -->
       <div class="number-row small-button">
         <button onclick="selectNumber(2)">2</button>
         <button onclick="selectNumber(3)">3</button>
@@ -44,6 +49,7 @@
         <button onclick="selectNumber(5)">5</button>
         <button onclick="selectNumber(6)">6</button>
       </div>
+      <!-- Second row of number buttons (8-12) -->
       <div class="number-row small-button">
         <button onclick="selectNumber(8)">8</button>
         <button onclick="selectNumber(9)">9</button>
@@ -52,15 +58,16 @@
         <button onclick="selectNumber(12)">12</button>
       </div>
     </div>
+    <!-- Special large button for 7 (robber) -->
     <button id="bigSeven" onclick="selectNumber(7)">7</button>
   </div>
 
-  <!-- SETTINGS MODAL -->
+  <!-- Settings Modal Dialog -->
   <div id="settingsModal" class="modal">
     <div class="modal-content">
       <h2>Settings</h2>
 
-      <!-- 6 & 8 Can Touch Slider -->
+      <!-- Toggle for "6 & 8 Can Touch" rule -->
       <label class="switch">
         <input type="checkbox" id="option1" checked>
         <span class="slider"></span>
@@ -68,7 +75,7 @@
       <span class="toggle-label">6 & 8 Can Touch</span>
       <br><br>
 
-      <!-- 2 & 12 Can Touch Slider -->
+      <!-- Toggle for "2 & 12 Can Touch" rule -->
       <label class="switch">
         <input type="checkbox" id="option2" checked>
         <span class="slider"></span>
@@ -76,7 +83,7 @@
       <span class="toggle-label">2 & 12 Can Touch</span>
       <br><br>
 
-      <!-- Same Numbers Can Touch Slider -->
+      <!-- Toggle for "Same Numbers Can Touch" rule -->
       <label class="switch">
         <input type="checkbox" id="option3" checked>
         <span class="slider"></span>
@@ -84,7 +91,7 @@
       <span class="toggle-label">Same Numbers Can Touch</span>
       <br><br>
 
-      <!-- Same Resources Can Touch Slider -->
+      <!-- Toggle for "Same Resources Can Touch" rule -->
       <label class="switch">
         <input type="checkbox" id="option4" checked>
         <span class="slider"></span>
@@ -92,7 +99,7 @@
       <span class="toggle-label">Same Resource Can Touch</span>
       <br><br>
 
-      <!-- Manual Dice Slider -->
+      <!-- Toggle for "Manual Dice" feature -->
       <label class="switch">
         <input type="checkbox" id="option5" checked>
         <span class="slider"></span>
@@ -100,9 +107,11 @@
       <span class="toggle-label">Allow Manual Dice</span>
       <br><br>
 
+      <!-- Close button for the settings modal -->
       <button class="close-btn" id="closeSettingsBtn">Close</button>
     </div>
   </div>
+  <!-- Include the JavaScript file -->
   <script src="/js/scripts.js"></script>
 </body>
 

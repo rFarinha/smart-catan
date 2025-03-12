@@ -1,3 +1,4 @@
+/* Root CSS variables for responsive hex sizing */
 :root {
   /* The widest row in extension mode has 6.5 hexes */
   --max-hex-count: 6.5;
@@ -16,7 +17,7 @@
   --hex-size: clamp(20px, calc((min(100vw, 600px) - var(--board-padding) - var(--hex-extra-space)) / var(--max-hex-count)), 100px);
 }
 
-
+/* Basic page styling */
 body {
   font-family: Arial, sans-serif;
   margin: 0;
@@ -26,11 +27,13 @@ body {
   align-items: center;
 }
 
+/* Header and paragraph styling */
 h1,
 p {
   margin: 20px;
 }
 
+/* Top buttons container styling */
 .top-buttons {
   display: flex;
   justify-content: center;
@@ -39,6 +42,7 @@ p {
   margin-bottom: 20px;
 }
 
+/* Default button styling */
 button {
   font-size: 16px;
   padding: 10px;
@@ -49,10 +53,12 @@ button {
   color: #fff;
 }
 
+/* Button hover effect */
 button:hover {
   background: #1f4e80;
 }
 
+/* Settings gear button style */
 .gear-button {
   background-color: #990000;
   border: none;
@@ -61,7 +67,7 @@ button:hover {
   font-size: 16px;
 }
 
-/* Board layout */
+/* Board layout container */
 .board-wrapper {
   width: 100%;
   max-width: 600px;
@@ -70,6 +76,7 @@ button:hover {
   overflow-x: hidden;
 }
 
+/* Board itself */
 .board {
   display: inline-block;
   margin: 20px auto;
@@ -77,6 +84,7 @@ button:hover {
   align-items: center;
 }
 
+/* Row of hexes */
 .row {
   display: flex;
   justify-content: center;
@@ -84,44 +92,54 @@ button:hover {
   margin: 0px 0;
 }
 
+/* Hexagon tile styling */
 .hex {
   width: var(--hex-size);
   height: var(--hex-size);
+  /* Creates the hexagon shape */
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: calc(var(--hex-size) / 5);
   font-weight: bold;
-  /* Use the horizontal margin variable here */
+  /* Vertical overlap to create proper hex grid */
   margin: calc(-0.18 * var(--hex-size)) var(--hex-horizontal-margin) 0 var(--hex-horizontal-margin);
   color: #333;
 }
 
+/* Resource color classes for hex tiles */
 .sheep {
   background-color: #90EE90;
+  /* Light green */
 }
 
 .ore {
   background-color: #D3D3D3;
+  /* Light gray */
 }
 
 .brick {
   background-color: #B22222;
+  /* Firebrick red */
 }
 
 .wheat {
   background-color: #FFD700;
+  /* Gold */
 }
 
 .wood {
   background-color: #006400;
+  /* Dark green */
 }
 
 .desert {
   background-color: #F0E68C;
+  /* Khaki */
 }
 
+/* Text color classes for numbers */
 .red {
   color: red;
 }
@@ -130,16 +148,18 @@ button:hover {
   color: rgb(0, 0, 0);
 }
 
-/* Shift the row with the offset class right by half a hexagon's width */
+/* Offset classes for proper hex grid alignment */
+/* Shift the row right by half a hexagon's width */
 .row.offsetRight {
   transform: translateX(calc(0.275 * var(--hex-size)));
 }
 
-/* Shift the row with the offset class right by half a hexagon's width */
+/* Shift the row left by half a hexagon's width */
 .row.offsetLeft {
   transform: translateX(calc(-0.275 * var(--hex-size)));
 }
 
+/* Start/End game button styling */
 .start-game-btn {
   font-size: 16px;
   padding: 10px;
@@ -155,7 +175,7 @@ button:hover {
   background: #218838;
 }
 
-/* Number Buttons (2..12) */
+/* Number Buttons layout (2..12) */
 #numberButtons {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -164,20 +184,20 @@ button:hover {
   margin-bottom: 30px;
 }
 
-/* This grid holds the two rows of smaller buttons */
+/* Grid for the two rows of smaller buttons */
 #numberButtonsRows {
   display: grid;
   grid-template-rows: repeat(2, auto);
   gap: 5px;
 }
 
-/* The rows of buttons arranged horizontally */
+/* Horizontal rows of number buttons */
 .number-row {
   display: flex;
   gap: 5px;
 }
 
-/* The 7 button spans both rows in the second column */
+/* Special large button for number 7 */
 #bigSeven {
   width: 80px;
   height: 87px;
@@ -185,24 +205,27 @@ button:hover {
   grid-column: 2;
   /* Force it into the second column */
   grid-row: 1 / span 2;
+  /* Spans both rows */
   font-size: 1.5em;
-  /* Increase font size as needed */
+  /* Larger font size */
   padding: 0px;
 }
 
+/* Small number buttons */
 .small-button button {
   width: 40px;
   margin: 2px;
   border-radius: 4px;
 }
 
+/* Hover effect for number buttons (only on devices with hover capability) */
 @media (hover: hover) and (pointer: fine) {
   #numberButtons button:hover {
     background: #333;
   }
 }
 
-/* For small buttons */
+/* Color styling for small buttons when selected (red) or not (black) */
 #numberButtonsRows button.red {
   background: red;
   color: #fff;
@@ -213,7 +236,7 @@ button:hover {
   color: #fff;
 }
 
-/* For the big 7 button */
+/* Color styling for big 7 button when selected (red) or not (black) */
 #bigSeven.red {
   background: red;
   color: #fff;
@@ -224,7 +247,7 @@ button:hover {
   color: #fff;
 }
 
-/* Basic modal for Settings (unchanged) */
+/* Modal dialog for Settings */
 .modal {
   display: none;
   position: fixed;
@@ -234,6 +257,7 @@ button:hover {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
+  /* Semi-transparent background */
 }
 
 .modal-content {
@@ -257,6 +281,7 @@ button:hover {
   border-radius: 4px;
 }
 
+/* Toggle switch styling */
 .switch {
   position: relative;
   display: inline-block;
@@ -266,12 +291,14 @@ button:hover {
   vertical-align: middle;
 }
 
+/* Hide default HTML checkbox */
 .switch input {
   opacity: 0;
   width: 0;
   height: 0;
 }
 
+/* The slider */
 .slider {
   position: absolute;
   cursor: pointer;
@@ -284,6 +311,7 @@ button:hover {
   border-radius: 34px;
 }
 
+/* Slider's circular button */
 .slider:before {
   position: absolute;
   content: "";
@@ -296,6 +324,7 @@ button:hover {
   border-radius: 50%;
 }
 
+/* Styles for when toggle is checked (on) */
 input:checked+.slider {
   background-color: #2196F3;
 }
@@ -304,11 +333,13 @@ input:checked+.slider:before {
   transform: translateX(18px);
 }
 
+/* Toggle label text */
 .toggle-label {
   vertical-align: middle;
   font-size: 14px;
 }
 
+/* Disabled button styling */
 button:disabled {
   background-color: #ccc;
   /* light grey */
