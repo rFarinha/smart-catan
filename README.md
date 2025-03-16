@@ -237,6 +237,13 @@ This automation will:
 
 You can monitor debug output by connecting to the ESP32's serial port at 115200 baud.
 
+## Future Plans V2.0
+- Dice tower with ESP32 camera that checks the dice values
+- Based on the dice from the camera trigger the correct leds
+- Create tests
+- Build pipeline
+
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
