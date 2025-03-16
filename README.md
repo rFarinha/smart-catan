@@ -2,7 +2,7 @@
 
 A digital Catan board generator for ESP32 with physical LED visualization and web interface. This project allows you to generate randomized Catan game boards with configurable rules, display them on a physical LED board, and control everything through a web interface.
 
-![Catan Board Generator](https://github.com/yourusername/catan-board-generator/raw/main/images/board-example.jpg)
+Go to [makerworld](https://makerworld.com/en/@user_1615041609) to get all the 3d models.
 
 ## Features
 
@@ -38,10 +38,7 @@ A digital Catan board generator for ESP32 with physical LED visualization and we
 
 1. Install [Visual Studio Code](https://code.visualstudio.com/)
 2. Install the [PlatformIO Extension](https://platformio.org/install/ide?install=vscode)
-3. Clone this repository:
-   ```
-   git clone https://github.com/yourusername/catan-board-generator.git
-   ```
+3. Clone this repository
 4. Open the project folder in VS Code
 
 ### WiFi Configuration
@@ -58,7 +55,6 @@ Look for the following section in `src/main.cpp` and simply replace the placehol
 #define PASSWORD_H
 const char *WIFI_SSID = "PlaceholderSSID";  // Change to your WiFi name
 const char *WIFI_PASS = "PlaceholderPassword";  // Change to your WiFi password
-#endif
 ```
 
 #### Option 2: Create a separate password.h file (Recommended for contributors)
@@ -104,7 +100,7 @@ pio run --target uploadfs
 
 ### Wiring
 
-Connect the WS2812B LED strip to the ESP32:
+Follow the makerworld associated document to build the board. Then:
 - Connect the LED data line to GPIO 4 (default, can be changed in `main.cpp`)
 - Connect the LED power (5V) and ground to appropriate power supply
 - Make sure your power supply can handle the current required by the LEDs
@@ -132,13 +128,95 @@ Connect the WS2812B LED strip to the ESP32:
 
 ## Optional: Home Assistant Integration
 
-The project includes optional integration with Home Assistant. To enable it:
+The Catan Board Generator can be integrated with Home Assistant to trigger automations when dice are rolled or numbers are selected. This allows for exciting possibilities such as changing your room lighting based on the selected number or triggering special effects when the robber (7) is rolled.
 
-1. Uncomment the `#define ENABLE_HOME_ASSISTANT` line in your code
-2. Set up a webhook automation in your Home Assistant instance
-3. Update the Home Assistant configuration in your code with your server details
+### Enabling Home Assistant Integration
 
-This allows the board to trigger Home Assistant automations when dice are rolled or numbers are selected.
+1. Open `src/main.cpp` and uncomment the following line:
+   ```cpp
+   //#define ENABLE_HOME_ASSISTANT
+   ```
+
+2. Set your Home Assistant credentials by either:
+   - Editing the placeholder values directly in `main.cpp`:
+     ```cpp
+     // Home Assistant credentials (only used if ENABLE_HOME_ASSISTANT is defined)
+      const char *HA_IP = "homeassistant.local";
+      const uint16_t HA_PORT = 8123;
+      const char *HA_ACCESS_TOKEN = "your_long_lived_access_token";
+      #endif
+     ```
+   - Or adding them to your `include/password.h` file if you're using that method
+      ```cpp
+      #ifndef PASSWORD_H
+      #define PASSWORD_H
+      
+      const char *WIFI_SSID = "YourWifiName";
+      const char *WIFI_PASS = "YourWifiPassword";
+
+      const char *HA_IP = "homeassistant.local";
+      const uint16_t HA_PORT = 8123;
+      const char *HA_ACCESS_TOKEN = "your_long_lived_access_token";
+      
+      #endif
+      ```
+
+
+### Setting Up a Webhook in Home Assistant
+
+1. In your Home Assistant installation, go to Settings → Automations & Scenes → Create Automation
+2. Choose "Webhook" as the trigger
+3. Set the webhook ID to `esp32_number`
+4. Add conditions as needed
+5. Set up your desired actions (e.g., control lights based on the selected number)
+
+### Example Automation
+
+Here's an example automation in YAML format that changes light colors based on the selected number:
+
+```yaml
+alias: Catan Board Dice Roll
+description: "Change lights based on Catan dice number"
+trigger:
+  - platform: webhook
+    webhook_id: esp32_number
+condition: []
+action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.json.selectedNumber == 7 }}"
+        sequence:
+          - service: light.turn_on
+            target:
+              entity_id: light.living_room
+            data:
+              rgb_color: [255, 0, 0]
+              brightness_pct: 100
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.json.selectedNumber == 6 or trigger.json.selectedNumber == 8 }}"
+        sequence:
+          - service: light.turn_on
+            target:
+              entity_id: light.living_room
+            data:
+              rgb_color: [0, 255, 0]
+              brightness_pct: 100
+    default:
+      - service: light.turn_on
+        target:
+          entity_id: light.living_room
+        data:
+          rgb_color: [0, 0, 255]
+          brightness_pct: 70
+mode: single
+```
+
+This automation will:
+- Turn the lights red when 7 (robber) is rolled
+- Turn the lights green when 6 or 8 (highest probability) is rolled
+- Turn the lights blue for all other numbers
 
 ## Customization
 

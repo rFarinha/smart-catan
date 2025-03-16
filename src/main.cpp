@@ -33,6 +33,10 @@
 #include "password.h"
 #include "WebPage.h"
 #include "LedController.h"
+#include "HomeAssistantTrigger.h"
+
+// Uncomment to disable Home Assistant integration
+// #define ENABLE_HOME_ASSISTANT
 
 // Configuration for background task handling
 #define BOARD_GEN_STACK_SIZE 8192 // Stack size for board generation task
@@ -44,13 +48,18 @@ volatile bool boardReady = true; // Indicates if board generation is complete
 bool gameLoaded = false;         // Indicates if a saved game was loaded
 
 // WiFi Credentials
-// Note: These are placeholders. Actual credentials should be defined in password.h
+// Note: These are placeholders. Create a password.h if you want to help in the development.
 #ifndef PASSWORD_H
 #define PASSWORD_H
+// WIFI credentials
 const char *WIFI_SSID = "PlaceholderSSID";
 const char *WIFI_PASS = "PlaceholderPassword";
-#endif
 
+// Home Assistant credentials (only used if ENABLE_HOME_ASSISTANT is defined)
+const char *HA_IP = "homeassistant.local";
+const uint16_t HA_PORT = 8123;
+const char *HA_ACCESS_TOKEN = "your_long_lived_access_token";
+#endif
 // Hardware Configuration
 #define LED_STRIP_PIN 4        // GPIO pin connected to the WS2812B data line
 #define LED_COUNT_CLASSIC 19   // Number of LEDs for classic board
@@ -525,6 +534,11 @@ void turnOnNumber()
   int tileCount = boardConfig.isExtension ? LED_COUNT_EXTENSION : LED_COUNT_CLASSIC;
   ledController.stopAnimation();
 
+  // Trigger Home Assistant with the selected number
+#ifdef ENABLE_HOME_ASSISTANT
+  triggerHomeAssistantScript(selectedNumber);
+#endif
+
   // Turn off all LEDs before applying new state
   ledController.turnOffAllLeds();
 
@@ -703,6 +717,12 @@ void setup()
   {
     Serial.println("Using saved board state.");
   }
+
+  // Initialize Home Assistant if enabled
+#ifdef ENABLE_HOME_ASSISTANT
+  initHomeAssistant(HA_IP, HA_PORT, HA_ACCESS_TOKEN, "/api/services/script/turn_on");
+  Serial.println("Home Assistant integration enabled");
+#endif
 
   // Start the web server
   server.begin();
