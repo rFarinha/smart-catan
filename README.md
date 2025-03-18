@@ -108,9 +108,8 @@ Follow the makerworld associated document to build the board. Then:
 ### Using the Web Interface
 
 1. After uploading and restarting, the ESP32 will connect to your WiFi
-2. Check the Serial Monitor for the assigned IP address
-3. Open a web browser and go to that IP address
-4. Use the interface to:
+2. Open a web browser and go to smartcatan.local or check the Serial Monitor for the assigned IP address
+3. Use the interface to:
    - Choose between classic or extension board
    - Configure board generation rules
    - Start/end games
