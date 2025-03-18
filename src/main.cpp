@@ -27,6 +27,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <ArduinoJson.h>
 #include <SPIFFS.h>
+#include <ESPmDNS.h>
 
 // Internal Project Headers
 #include "BoardGenerator.h"
@@ -736,6 +737,15 @@ void setup()
   initHomeAssistant(HA_IP, HA_PORT, HA_ACCESS_TOKEN, "/api/services/script/turn_on");
   Serial.println("Home Assistant integration enabled");
 #endif
+  
+   // Initialize mDNS
+  if (!MDNS.begin("smartcatan")) {   // Set the hostname to "smartcatan.local"
+    Serial.println("Error setting up MDNS responder!");
+    while(1) {
+      delay(1000);
+    }
+  }
+  Serial.println("mDNS responder started");
 
   // Start the web server
   server.begin();
