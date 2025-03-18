@@ -30,7 +30,6 @@
 
 // Internal Project Headers
 #include "BoardGenerator.h"
-#include "password.h"
 #include "WebPage.h"
 #include "LedController.h"
 #include "HomeAssistantTrigger.h"
@@ -49,17 +48,31 @@ bool gameLoaded = false;         // Indicates if a saved game was loaded
 
 // WiFi Credentials
 // Note: These are placeholders. Create a password.h if you want to help in the development.
-#ifndef PASSWORD_H
-#define PASSWORD_H
-// WIFI credentials
+// ------------- WIFI & Home Assistant Credentials -------------
+// Try to include password.h if it exists, otherwise use defaults
+#if __has_include("password.h")
+#include "password.h"
+#else
+                         // Default WiFi credentials - used when password.h doesn't exist
+#ifndef WIFI_SSID
 const char *WIFI_SSID = "PlaceholderSSID";
+#endif
+#ifndef WIFI_PASS
 const char *WIFI_PASS = "PlaceholderPassword";
+#endif
 
-// Home Assistant credentials (only used if ENABLE_HOME_ASSISTANT is defined)
+// Default Home Assistant credentials - only used if ENABLE_HOME_ASSISTANT is defined
+#ifndef HA_IP
 const char *HA_IP = "homeassistant.local";
+#endif
+#ifndef HA_PORT
 const uint16_t HA_PORT = 8123;
+#endif
+#ifndef HA_ACCESS_TOKEN
 const char *HA_ACCESS_TOKEN = "your_long_lived_access_token";
 #endif
+#endif
+
 // Hardware Configuration
 #define LED_STRIP_PIN 4        // GPIO pin connected to the WS2812B data line
 #define LED_COUNT_CLASSIC 19   // Number of LEDs for classic board
@@ -502,28 +515,6 @@ void handleEndGame()
 }
 
 /**
- * Web server handler to select a number during gameplay
- * Updates the selected number and highlights corresponding tiles
- */
-void handleSelectNumber()
-{
-  // Get the number sent from the client
-  String value = server.arg("value");
-  selectedNumber = value.toInt();
-  Serial.print("[/selectNumber] Number selected: ");
-  Serial.println(selectedNumber);
-
-  // Update LEDs to reflect the selected number
-  turnOnNumber();
-
-  // Save the current game state
-  saveGameState();
-
-  // Respond to the client
-  server.send(200, "text/plain", value);
-}
-
-/**
  * Updates the LED display based on the currently selected number
  * For normal numbers (2-6, 8-12): Lights up hexes with that number
  * For 7 (robber): Triggers the robber animation
@@ -584,6 +575,28 @@ void turnOnNumber()
     // Update the LED strip
     ledController.update();
   }
+}
+
+/**
+ * Web server handler to select a number during gameplay
+ * Updates the selected number and highlights corresponding tiles
+ */
+void handleSelectNumber()
+{
+  // Get the number sent from the client
+  String value = server.arg("value");
+  selectedNumber = value.toInt();
+  Serial.print("[/selectNumber] Number selected: ");
+  Serial.println(selectedNumber);
+
+  // Update LEDs to reflect the selected number
+  turnOnNumber();
+
+  // Save the current game state
+  saveGameState();
+
+  // Respond to the client
+  server.send(200, "text/plain", value);
 }
 
 /**
