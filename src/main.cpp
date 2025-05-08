@@ -35,7 +35,7 @@
 #include "LedController.h"
 #include "HomeAssistantTrigger.h"
 
-// Uncomment to disable Home Assistant integration
+// Uncomment to enable Home Assistant integration
 // #define ENABLE_HOME_ASSISTANT
 
 // Configuration for background task handling
