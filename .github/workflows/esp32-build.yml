@@ -1,0 +1,57 @@
+name: PlatformIO ESP32 Build
+
+on:
+  push:
+    branches: [ gitaction-compilation-check ]
+  pull_request:
+    branches: [ gitaction-compilation-check ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install PlatformIO
+      run: |
+        python -m pip install --upgrade pip
+        pip install platformio
+
+    - name: Check PlatformIO installation
+      run: pio --version
+
+    - name: Create password.h for compilation
+      run: |
+        # Create a placeholder password.h file with default values for testing
+        mkdir -p include
+        cat > include/password.h << 'EOF'
+        #ifndef PASSWORD_H
+        #define PASSWORD_H
+        
+        const char *WIFI_SSID = "TestSSID";
+        const char *WIFI_PASS = "TestPassword";
+        
+        // Home Assistant credentials
+        const char *HA_IP = "homeassistant.local";
+        const uint16_t HA_PORT = 8123;
+        const char *HA_ACCESS_TOKEN = "test_token";
+        
+        #endif
+        EOF
+
+    - name: Build project
+      run: pio run -e esp32dev
+
+    - name: Upload firmware as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: firmware
+        path: .pio/build/esp32dev/firmware.bin
+        if-no-files-found: error
