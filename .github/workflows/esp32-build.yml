@@ -64,7 +64,7 @@ jobs:
       run: pio run -e esp32dev ${{ matrix.build-config.flags }}
       
     - name: Upload firmware as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: firmware-${{ github.run_number }}-${{ github.job }}-${{ matrix.build-config.name }}
         path: .pio/build/esp32dev/firmware.bin
