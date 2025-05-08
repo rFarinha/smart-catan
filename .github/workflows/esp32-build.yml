@@ -9,7 +9,18 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build-config:
+          # Default build with Home Assistant enabled
+          - name: "Standard Build (HA Enabled)"
+            flags: ""
+          # Build with Home Assistant disabled
+          - name: "No Home Assistant"
+            flags: "-DHAL_DISABLE_HOME_ASSISTANT"
+          # Additional builds can be added here
 
+    name: ${{ matrix.build-config.name }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -46,12 +57,15 @@ jobs:
         #endif
         EOF
 
-    - name: Build project
-      run: pio run -e esp32dev
-
+    - name: Install dependencies
+      run: pio pkg install
+    
+    - name: Build project with ${{ matrix.build-config.name }}
+      run: pio run -e esp32dev ${{ matrix.build-config.flags }}
+      
     - name: Upload firmware as artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
-        name: firmware
+        name: firmware-${{ github.run_number }}-${{ github.job }}-${{ matrix.build-config.name }}
         path: .pio/build/esp32dev/firmware.bin
         if-no-files-found: error
