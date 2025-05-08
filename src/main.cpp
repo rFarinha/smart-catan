@@ -115,7 +115,7 @@ BoardConfig boardConfig; // Board configuration settings
  * @return String containing JSON data with board configuration,
  *         resource placement, number tokens, and game settings
  */
-String generateJSON()
+String generateJSON()-
 {
   // Create a JSON document
   JsonDocument doc;
