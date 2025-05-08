@@ -2,9 +2,9 @@ name: PlatformIO ESP32 Build
 
 on:
   push:
-    branches: [ gitaction-compilation-check ]
+    branches: [ main ]
   pull_request:
-    branches: [ gitaction-compilation-check ]
+    branches: [ main ]
 
 jobs:
   build:
