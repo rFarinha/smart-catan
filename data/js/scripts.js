@@ -423,3 +423,4 @@ function updateNumberButtonColors(selectedNumber) {
     bigSeven.classList.add("black");
   }
 }
+

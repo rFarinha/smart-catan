@@ -1,0 +1,65 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Catan Setup</title>
+    <link rel="stylesheet" href="/css/portal.css">
+</head>
+<body>
+    <h1>Smart Catan Setup</h1>
+    
+    <div class="card">
+        <div class="tabs">
+            <div class="tab active" id="options-tab-btn" onclick="showTab('options')">Main Menu</div>
+            <div class="tab" id="wifi-tab-btn" onclick="showTab('wifi')">WiFi Setup</div>
+        </div>
+        
+        <div id="options-tab">
+            <p>Choose an option to continue:</p>
+            <a href="#" class="option" onclick="showTab('wifi')">1. WiFi & Home Assistant Settings</a>
+            <a href="/board" class="option">2. Control Catan Board</a>
+        </div>
+        
+        <div id="wifi-tab" class="hidden">
+            <h2>WiFi Configuration</h2>
+            <button class="scan-btn" onclick="scanNetworks()">Scan for Networks</button>
+            <div id="networks"></div>
+            
+            <form id="config-form" action="/save" method="post">
+                <label for="ssid">WiFi Name (SSID):</label>
+                <input type="text" id="ssid" name="ssid" value="{{SSID}}" required>
+                
+                <label for="password">WiFi Password:</label>
+                <div class="password-container">
+                    <input type="password" id="password" name="password" value="{{PASSWORD}}">
+                    <button type="button" class="show-password-btn" onclick="togglePasswordVisibility()">
+                        <span id="password-icon">👁️</span>
+                    </button>
+                </div>
+                
+                <h3>Home Assistant Integration (Optional)</h3>
+                <p>Leave empty to disable Home Assistant integration.</p>
+                
+                <label for="ha_ip">Home Assistant IP/Hostname:</label>
+                <input type="text" id="ha_ip" name="ha_ip" value="{{HA_IP}}">
+                
+                <label for="ha_port">Home Assistant Port:</label>
+                <input type="number" id="ha_port" name="ha_port" value="{{HA_PORT}}">
+                
+                <label for="ha_token">Long-lived Access Token:</label>
+                <div class="password-container">
+                    <input type="password" id="ha_token" name="ha_token" value="{{HA_TOKEN}}">
+                    <button type="button" class="show-password-btn" onclick="toggleTokenVisibility()">
+                        <span id="token-icon">👁️</span>
+                    </button>
+                </div>
+                
+                <button type="submit">Save & Connect</button>
+            </form>
+        </div>
+    </div>
+    
+    <script src="/js/portal.js"></script>
+</body>
+</html>

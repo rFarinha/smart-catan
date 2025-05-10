@@ -5,19 +5,6 @@
  * randomized Catan boards with configurable placement rules. It includes
  * LED visualization using WS2812B LED strips, configurable game settings,
  * and support for both classic and extension Catan board layouts.
- *
- * Hardware Requirements:
- * - ESP32 development board
- * - WS2812B addressable LED strip (19 LEDs for classic mode, 30 for extension)
- * - Power supply for LEDs
- *
- * Features:
- * - Web-based interface accessible via WiFi
- * - Configurable board generation rules
- * - Physical LED board visualization
- * - Game state persistence through power cycles
- * - Support for classic (19 hexes) and extension (30 hexes) boards
- * - Home Assistant integration
  */
 
 // External Libraries
@@ -34,9 +21,7 @@
 #include "WebPage.h"
 #include "LedController.h"
 #include "HomeAssistantTrigger.h"
-
-// Uncomment to enable Home Assistant integration
-// #define ENABLE_HOME_ASSISTANT
+#include "WiFiManager.h"  // Add the new WiFiManager header
 
 // Configuration for background task handling
 #define BOARD_GEN_STACK_SIZE 8192 // Stack size for board generation task
@@ -47,33 +32,6 @@
 volatile bool boardReady = true; // Indicates if board generation is complete
 bool gameLoaded = false;         // Indicates if a saved game was loaded
 
-// WiFi Credentials
-// Note: These are placeholders. Create a password.h if you want to help in the development.
-// ------------- WIFI & Home Assistant Credentials -------------
-// Try to include password.h if it exists, otherwise use defaults
-#if __has_include("password.h")
-#include "password.h"
-#else
-                         // Default WiFi credentials - used when password.h doesn't exist
-#ifndef WIFI_SSID
-const char *WIFI_SSID = "PlaceholderSSID";
-#endif
-#ifndef WIFI_PASS
-const char *WIFI_PASS = "PlaceholderPassword";
-#endif
-
-// Default Home Assistant credentials - only used if ENABLE_HOME_ASSISTANT is defined
-#ifndef HA_IP
-const char *HA_IP = "homeassistant.local";
-#endif
-#ifndef HA_PORT
-const uint16_t HA_PORT = 8123;
-#endif
-#ifndef HA_ACCESS_TOKEN
-const char *HA_ACCESS_TOKEN = "your_long_lived_access_token";
-#endif
-#endif
-
 // Hardware Configuration
 #define LED_STRIP_PIN 4        // GPIO pin connected to the WS2812B data line
 #define LED_COUNT_CLASSIC 19   // Number of LEDs for classic board
@@ -81,6 +39,9 @@ const char *HA_ACCESS_TOKEN = "your_long_lived_access_token";
 
 // Initialize LED controller
 LedController ledController(LED_STRIP_PIN, LED_COUNT_CLASSIC);
+
+// Initialize WiFi manager
+WiFiManager wifiManager;
 
 // Currently selected dice number (2-12, 0 means none selected)
 int selectedNumber;
@@ -319,6 +280,12 @@ void createBoardTask()
  */
 void handleRoot()
 {
+  // If WiFi manager is in config mode, let it handle this request
+  if (wifiManager.isInConfigMode() && wifiManager.isPortalActive()) {
+    return;
+  }
+  
+  // Otherwise, serve the main Catan board interface
   server.send(200, "text/html", htmlPage);
 }
 
@@ -526,10 +493,19 @@ void turnOnNumber()
   int tileCount = boardConfig.isExtension ? LED_COUNT_EXTENSION : LED_COUNT_CLASSIC;
   ledController.stopAnimation();
 
-  // Trigger Home Assistant with the selected number
-#ifdef ENABLE_HOME_ASSISTANT
-  triggerHomeAssistantScript(selectedNumber);
-#endif
+  // Trigger Home Assistant with the selected number if enabled
+  if (wifiManager.isHaEnabled() && wifiManager.isConnected()) {
+    // Initialize Home Assistant with configuration from WiFiManager
+    #ifdef ENABLE_HOME_ASSISTANT
+    initHomeAssistant(
+      wifiManager.getHaIp().c_str(),
+      wifiManager.getHaPort(),
+      wifiManager.getHaAccessToken().c_str(),
+      "/api/services/script/turn_on"
+    );
+    triggerHomeAssistantScript(selectedNumber);
+    #endif
+  }
 
   // Turn off all LEDs before applying new state
   ledController.turnOffAllLeds();
@@ -651,6 +627,24 @@ void setup()
     return;
   }
 
+  // Seed the random number generator
+  randomSeed(micros());
+
+  // Initialize LED strip for classic board initially
+  ledController.begin(LED_COUNT_CLASSIC);
+
+  // Start the WiFi manager and try to connect to stored WiFi
+  bool wifiConnected = wifiManager.begin();
+
+  // If we're in config mode, let the WiFi manager handle the web server
+  if (wifiManager.isInConfigMode()) {
+    Serial.println("Running in configuration mode, waiting for WiFi setup");
+    // Start waiting animation on LEDs
+    ledController.startAnimation(WAITING_ANIMATION, nullptr, 0, 50);
+    return; // Skip the rest of setup, we'll be in the config portal
+  }
+
+  // Continue with normal Catan board setup since we're connected to WiFi
   // Attempt to load saved game state
   loadGameState();
 
@@ -668,18 +662,12 @@ void setup()
     selectedNumber = 0;
   }
 
-  // Connect to WiFi
-  connectWifi(WIFI_SSID, WIFI_PASS);
-
   // Load HTML content from SPIFFS
   readHtml(htmlPage, server);
 
-  // Seed the random number generator
-  randomSeed(micros());
-
   // Initialize LED strip based on board mode
   uint16_t ledCount = boardConfig.isExtension ? LED_COUNT_EXTENSION : LED_COUNT_CLASSIC;
-  ledController.begin(ledCount);
+  ledController.restart(ledCount);
 
   // Start appropriate LED animation
   if (board.resources.size() == 0)
@@ -691,6 +679,19 @@ void setup()
   {
     // If board loaded, show current selected number
     turnOnNumber();
+  }
+
+  // Initialize Home Assistant if enabled and configured through WiFiManager
+  if (wifiManager.isHaEnabled()) {
+    #ifdef ENABLE_HOME_ASSISTANT
+    initHomeAssistant(
+      wifiManager.getHaIp().c_str(),
+      wifiManager.getHaPort(),
+      wifiManager.getHaAccessToken().c_str(),
+      "/api/services/script/turn_on"
+    );
+    Serial.println("Home Assistant integration enabled with settings from config portal");
+    #endif
   }
 
   // Set up server routes
@@ -732,21 +733,6 @@ void setup()
     Serial.println("Using saved board state.");
   }
 
-  // Initialize Home Assistant if enabled
-#ifdef ENABLE_HOME_ASSISTANT
-  initHomeAssistant(HA_IP, HA_PORT, HA_ACCESS_TOKEN, "/api/services/script/turn_on");
-  Serial.println("Home Assistant integration enabled");
-#endif
-  
-   // Initialize mDNS
-  if (!MDNS.begin("smartcatan")) {   // Set the hostname to "smartcatan.local"
-    Serial.println("Error setting up MDNS responder!");
-    while(1) {
-      delay(1000);
-    }
-  }
-  Serial.println("mDNS responder started");
-
   // Start the web server
   server.begin();
   Serial.println("HTTP server started.");
@@ -757,9 +743,16 @@ void setup()
 
 /**
  * Arduino loop function - runs repeatedly
- * Handles web server client requests
+ * Handles web server client requests and WiFi manager processing
  */
 void loop()
 {
-  server.handleClient();
+  // Check if we're in config mode
+  if (wifiManager.isInConfigMode()) {
+    // Let the WiFi manager handle portal requests
+    wifiManager.process();
+  } else {
+    // Handle regular web server requests
+    server.handleClient();
+  }
 }
