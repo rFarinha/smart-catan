@@ -14,17 +14,6 @@
 #include <WebServer.h>
 
 /**
- * Connect to WiFi network
- *
- * Attempts to connect to the specified WiFi network and
- * prints the IP address when connected.
- *
- * @param WIFI_SSID Network name
- * @param WIFI_PASS Network password
- */
-void connectWifi(const char *WIFI_SSID, const char *WIFI_PASS);
-
-/**
  * Read HTML content from SPIFFS
  *
  * Loads the main HTML file from flash and sets up static routes
