@@ -615,15 +615,21 @@ void handleSaveHA() {
 }
 
 void handleNotFound() {
-    // If in AP mode, capture all requests and redirect to the root page
     if (wifiManager.isInApMode()) {
-        // Check if the request is for a web page (not for assets like CSS/JS)
-        if (server.hostHeader() != WiFi.softAPIP().toString() 
-            && server.uri().indexOf(".") == -1) {
-            Serial.print("Captive portal redirect: ");
-            Serial.println(server.uri());
-            
-            // Redirect to the main page
+        Serial.print("Captive portal request: ");
+        Serial.print(server.hostHeader());
+        Serial.print(" ");
+        Serial.println(server.uri());
+        
+        // iOS devices check for captive portals by requesting this specific host
+        if (server.hostHeader() == "captive.apple.com") {
+            // For iOS, we need to respond with a 200 OK and specific content
+            server.send(200, "text/html", "<!DOCTYPE html><html><head><title>Success</title></head><body>Success</body></html>");
+            return;
+        }
+        
+        // For all other requests to hosts that aren't our IP, redirect to our main page
+        if (server.hostHeader() != WiFi.softAPIP().toString()) {
             String redirectURL = "http://" + WiFi.softAPIP().toString();
             server.sendHeader("Location", redirectURL, true);
             server.send(302, "text/plain", "");
@@ -759,6 +765,12 @@ void handleRollDice()
   server.send(200, "text/plain", result);
 }
 
+void handleBoard() {
+    // Simply redirect to the root path which serves the main Catan UI
+    server.sendHeader("Location", "/", true);
+    server.send(302, "text/plain", "");
+}
+
 // --------------------------------------------------------------
 //                  SETUP & LOOP
 // --------------------------------------------------------------
@@ -795,6 +807,10 @@ void setup()
       IPAddress apIP = WiFi.softAPIP();
       dnsServer.start(DNS_PORT, "*", apIP);
       Serial.println("DNS server started for captive portal");
+      Serial.print("AP IP address: ");
+      Serial.println(apIP);
+      Serial.print("AP SSID: ");
+      Serial.println(AP_NAME);
   } else {
       // Only attempt mDNS when in station mode
       if (!MDNS.begin("smartcatan")) {
@@ -803,11 +819,10 @@ void setup()
           Serial.println("mDNS responder started");
       }
     }
-  
-  // Always initialize the web server with the main interface, regardless of connection state
-  readHtml(htmlPage, server);
-  server.begin();
-  
+
+  // Clear the HTML page string before loading to prevent duplication  
+  htmlPage = "";
+
   // Initialize LED strip based on board mode
   uint16_t ledCount = boardConfig.isExtension ? LED_COUNT_EXTENSION : LED_COUNT_CLASSIC;
   ledController.restart(ledCount);
@@ -890,6 +905,27 @@ void setup()
   server.on("/scan-networks", HTTP_GET, handleScanNetworks);
   server.on("/save-wifi", HTTP_POST, handleSaveWifi);
   server.on("/save-ha", HTTP_POST, handleSaveHA);
+  server.on("/board", HTTP_GET, handleBoard);
+  server.on("/generate_204", handleRoot);  // Android
+  server.on("/gen_204", handleRoot);       // Android
+  server.on("/ncsi.txt", handleRoot);      // Windows
+  server.on("/hotspot-detect.html", HTTP_GET, []() {
+  server.send(200, "text/html", "<!DOCTYPE html><html><head><title>Success</title></head><body>Success</body></html>");
+});
+
+server.on("/library/test/success.html", HTTP_GET, []() {
+  server.send(200, "text/html", "<!DOCTYPE html><html><head><title>Success</title></head><body>Success</body></html>");
+});
+
+// Add this specific handler for captive.apple.com
+server.on("/", HTTP_GET, []() {
+  if (server.hostHeader() == "captive.apple.com") {
+    server.send(200, "text/html", "<!DOCTYPE html><html><head><title>Success</title></head><body>Success</body></html>");
+  } else {
+    handleRoot(); // Your regular root handler
+  }
+});
+  server.on("/connecttest.txt", handleRoot); // Windows
   server.onNotFound(handleNotFound);
 
   // Generate a new board if none was loaded
@@ -911,7 +947,7 @@ void setup()
     Serial.println("Using saved board state.");
   }
 
-  // Start the web server
+  // Start the web server AFTER all handlers are registered
   server.begin();
   Serial.println("HTTP server started.");
 
@@ -926,9 +962,13 @@ void setup()
 void loop() {
     // Process DNS requests if in AP mode
     if (wifiManager.isInApMode()) {
+        // Handle DNS requests - this is critical for captive portal
         dnsServer.processNextRequest();
+        
+        // Add a small delay to prevent CPU hogging
+        delay(1);
     }
 
-  // Always handle web server requests
-  server.handleClient();
+    // Always handle web server requests
+    server.handleClient();
 }
