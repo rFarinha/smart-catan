@@ -15,6 +15,7 @@
 #include <ArduinoJson.h>
 #include <SPIFFS.h>
 #include <ESPmDNS.h>
+#include <DNSServer.h>
 
 // Internal Project Headers
 #include "BoardGenerator.h"
@@ -65,6 +66,10 @@ String htmlPage;      // Stores the HTML content
 // Catan Game Data
 Board board;             // Current board layout
 BoardConfig boardConfig; // Board configuration settings
+
+// DNS Server
+DNSServer dnsServer;
+const byte DNS_PORT = 53; // Standard DNS port
 
 //---------------------------------------------------------------
 //                 UTILITY FUNCTIONS
@@ -278,14 +283,8 @@ void createBoardTask()
  * Web server handler for the root path
  * Serves the main HTML page
  */
-void handleRoot()
-{
-  // If WiFi manager is in config mode, let it handle this request
-  if (wifiManager.isInConfigMode() && wifiManager.isPortalActive()) {
-    return;
-  }
-  
-  // Otherwise, serve the main Catan board interface
+void handleRoot() {
+  // Always serve the main Catan board interface
   server.send(200, "text/html", htmlPage);
 }
 
@@ -483,6 +482,160 @@ void handleEndGame()
 }
 
 /**
+ * Web server handler to get WiFi and Home Assistant connection status
+ * Returns JSON with connection details
+ */
+void handleConnectionStatus() {
+  JsonDocument doc;
+  
+  // WiFi status
+  doc["wifiConnected"] = WiFi.status() == WL_CONNECTED;
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    // Connected to WiFi
+    doc["ip"] = WiFi.localIP().toString();
+    doc["ssid"] = WiFi.SSID();
+    doc["apMode"] = false;
+  } else if (wifiManager.isInApMode()) {
+    // In AP mode
+    doc["apMode"] = true;
+    doc["ip"] = WiFi.softAPIP().toString();
+    doc["apName"] = AP_NAME;
+  } else {
+    // Not connected to WiFi and not in AP mode
+    doc["apMode"] = false;
+  }
+  
+  // Home Assistant status
+  #ifdef ENABLE_HOME_ASSISTANT
+  doc["haEnabled"] = wifiManager.isHaEnabled();
+  doc["haIp"] = wifiManager.getHaIp();
+  doc["haPort"] = wifiManager.getHaPort();
+  // Don't send the full token for security, just indicate if it exists
+  doc["haTokenSet"] = wifiManager.getHaAccessToken().length() > 0;
+  #else
+  doc["haEnabled"] = false;
+  #endif
+  
+  String response;
+  serializeJson(doc, response);
+  server.send(200, "application/json", response);
+}
+
+/**
+ * Web server handler to scan for available WiFi networks
+ * Returns JSON array with network details
+ */
+void handleScanNetworks() {
+  Serial.println("Scanning for networks...");
+  
+  int n = WiFi.scanNetworks();
+  JsonDocument doc;
+  JsonArray networks = doc.createNestedArray("networks");
+  
+  for (int i = 0; i < n; ++i) {
+    JsonObject network = networks.createNestedObject();
+    network["ssid"] = WiFi.SSID(i);
+    network["rssi"] = WiFi.RSSI(i);
+    network["secure"] = WiFi.encryptionType(i) != WIFI_AUTH_OPEN;
+  }
+  
+  String response;
+  serializeJson(doc, response);
+  server.send(200, "application/json", response);
+  
+  // Clean up scan results
+  WiFi.scanDelete();
+}
+
+/**
+ * Web server handler to save WiFi configuration
+ * Accepts form data with SSID and password
+ */
+void handleSaveWifi() {
+  if (!server.hasArg("ssid")) {
+    server.send(400, "text/plain", "Missing SSID parameter");
+    return;
+  }
+  
+  String ssid = server.arg("ssid");
+  String password = server.arg("password");
+  
+  // Save to WiFi manager
+  bool success = wifiManager.saveCredentials(ssid, password);
+  
+  if (success) {
+    server.send(200, "text/plain", "WiFi configuration saved! Restarting...");
+    
+    // Give the browser time to receive the response
+    delay(1000);
+    
+    // Restart the ESP32 to apply new settings
+    ESP.restart();
+  } else {
+    server.send(500, "text/plain", "Failed to save WiFi configuration");
+  }
+}
+
+/**
+ * Web server handler to save Home Assistant configuration
+ * Accepts form data with HA server details
+ */
+void handleSaveHA() {
+  if (!server.hasArg("ha_ip")) {
+    server.send(400, "text/plain", "Missing Home Assistant IP parameter");
+    return;
+  }
+  
+  String haIp = server.arg("ha_ip");
+  String haPortStr = server.arg("ha_port");
+  String haToken = server.arg("ha_token");
+  
+  // Parse port with validation
+  uint16_t haPort = haPortStr.length() > 0 ? haPortStr.toInt() : 8123;
+  
+  // Save to WiFi manager
+  bool success = wifiManager.saveHAConfig(haIp, haPort, haToken);
+  
+  if (success) {
+    server.send(200, "text/plain", "Home Assistant configuration saved!");
+    
+    // Initialize Home Assistant with the new settings
+    #ifdef ENABLE_HOME_ASSISTANT
+    initHomeAssistant(
+      haIp.c_str(),
+      haPort,
+      haToken.c_str(),
+      "/api/services/script/turn_on"
+    );
+    #endif
+  } else {
+    server.send(500, "text/plain", "Failed to save Home Assistant configuration");
+  }
+}
+
+void handleNotFound() {
+    // If in AP mode, capture all requests and redirect to the root page
+    if (wifiManager.isInApMode()) {
+        // Check if the request is for a web page (not for assets like CSS/JS)
+        if (server.hostHeader() != WiFi.softAPIP().toString() 
+            && server.uri().indexOf(".") == -1) {
+            Serial.print("Captive portal redirect: ");
+            Serial.println(server.uri());
+            
+            // Redirect to the main page
+            String redirectURL = "http://" + WiFi.softAPIP().toString();
+            server.sendHeader("Location", redirectURL, true);
+            server.send(302, "text/plain", "");
+            return;
+        }
+    }
+    
+    // For other 404 cases, return a standard 404 message
+    server.send(404, "text/plain", "Not Found");
+}
+
+/**
  * Updates the LED display based on the currently selected number
  * For normal numbers (2-6, 8-12): Lights up hexes with that number
  * For 7 (robber): Triggers the robber animation
@@ -633,16 +786,34 @@ void setup()
   // Initialize LED strip for classic board initially
   ledController.begin(LED_COUNT_CLASSIC);
 
-  // Start the WiFi manager and try to connect to stored WiFi
-  bool wifiConnected = wifiManager.begin();
+  // Initialize the WiFi manager
+  wifiManager.begin();
 
-  // If we're in config mode, let the WiFi manager handle the web server
-  if (wifiManager.isInConfigMode()) {
-    Serial.println("Running in configuration mode, waiting for WiFi setup");
-    // Start waiting animation on LEDs
-    ledController.startAnimation(WAITING_ANIMATION, nullptr, 0, 50);
-    return; // Skip the rest of setup, we'll be in the config portal
-  }
+  // Start DNS server for captive portal if in AP mode
+  if (wifiManager.isInApMode()) {
+      // Initialize the DNS server to redirect all domains to our IP
+      IPAddress apIP = WiFi.softAPIP();
+      dnsServer.start(DNS_PORT, "*", apIP);
+      Serial.println("DNS server started for captive portal");
+  } else {
+      // Only attempt mDNS when in station mode
+      if (!MDNS.begin("smartcatan")) {
+          Serial.println("Error setting up MDNS responder!");
+      } else {
+          Serial.println("mDNS responder started");
+      }
+    }
+  
+  // Always initialize the web server with the main interface, regardless of connection state
+  readHtml(htmlPage, server);
+  server.begin();
+  
+  // Initialize LED strip based on board mode
+  uint16_t ledCount = boardConfig.isExtension ? LED_COUNT_EXTENSION : LED_COUNT_CLASSIC;
+  ledController.restart(ledCount);
+  
+  // Show the waiting animation while we determine the board state
+  ledController.startAnimation(WAITING_ANIMATION, nullptr, 0, 50);
 
   // Continue with normal Catan board setup since we're connected to WiFi
   // Attempt to load saved game state
@@ -666,7 +837,7 @@ void setup()
   readHtml(htmlPage, server);
 
   // Initialize LED strip based on board mode
-  uint16_t ledCount = boardConfig.isExtension ? LED_COUNT_EXTENSION : LED_COUNT_CLASSIC;
+  ledCount = boardConfig.isExtension ? LED_COUNT_EXTENSION : LED_COUNT_CLASSIC;
   ledController.restart(ledCount);
 
   // Start appropriate LED animation
@@ -714,6 +885,13 @@ void setup()
   server.on("/selectNumber", HTTP_GET, handleSelectNumber);
   server.on("/rollDice", HTTP_GET, handleRollDice);
 
+  // Add new API endpoints for the integrated WiFi and HA management
+  server.on("/connection-status", HTTP_GET, handleConnectionStatus);
+  server.on("/scan-networks", HTTP_GET, handleScanNetworks);
+  server.on("/save-wifi", HTTP_POST, handleSaveWifi);
+  server.on("/save-ha", HTTP_POST, handleSaveHA);
+  server.onNotFound(handleNotFound);
+
   // Generate a new board if none was loaded
   if (board.resources.size() == 0)
   {
@@ -743,16 +921,14 @@ void setup()
 
 /**
  * Arduino loop function - runs repeatedly
- * Handles web server client requests and WiFi manager processing
+ * Handles web server client requests
  */
-void loop()
-{
-  // Check if we're in config mode
-  if (wifiManager.isInConfigMode()) {
-    // Let the WiFi manager handle portal requests
-    wifiManager.process();
-  } else {
-    // Handle regular web server requests
-    server.handleClient();
-  }
+void loop() {
+    // Process DNS requests if in AP mode
+    if (wifiManager.isInApMode()) {
+        dnsServer.processNextRequest();
+    }
+
+  // Always handle web server requests
+  server.handleClient();
 }

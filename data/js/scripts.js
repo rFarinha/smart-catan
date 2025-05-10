@@ -6,6 +6,8 @@ let two_twelve_canTouch = true;     // Setting: Can 2 and 12 be adjacent?
 let sameNumbers_canTouch = true;    // Setting: Can same numbers be adjacent?
 let sameResource_canTouch = true;   // Setting: Can same resources be adjacent?
 let manualDice = true;              // Setting: Can players manually select dice values?
+let wifiConnected = false;         // Tracks if WiFi is connected
+let haConnected = false;           // Tracks if Home Assistant is connected
 
 let currentSelectedNumber = 0;      // Currently selected number token (0 means none)
 
@@ -22,6 +24,20 @@ var numberButtons,
   option5,
   settingsModa,
   closeSettingsBtn;
+  openWifiBtn,
+  closeWifiBtn,
+  wifiModal,
+  wifiScanBtn,
+  wifiSaveBtn,
+  wifiForm,
+  wifiStatusText,
+  openHaBtn,
+  closeHaBtn,
+  haModal,
+  haSaveBtn,
+  haForm,
+  haStatusText,
+  statusModal;
 
 // -------------- Communication with Server --------------
 
@@ -285,6 +301,7 @@ function rollDice() {
 window.addEventListener('load', () => {
   loadElementValues();
   addSettingsListeners();
+  initConnectionUI();
 });
 
 /**
@@ -424,3 +441,304 @@ function updateNumberButtonColors(selectedNumber) {
   }
 }
 
+// -------------- WiFi and Home Assistant Functions --------------
+
+/**
+ * Initialize connection status
+ * Called after page load to fetch WiFi and HA statuses
+ */
+function initConnectionStatus() {
+  fetch('/connection-status')
+    .then(response => response.json())
+    .then(data => {
+      // Update WiFi status
+      wifiConnected = data.wifiConnected;
+      if (wifiConnected) {
+        openWifiBtn.classList.add('connected');
+        document.getElementById('wifiStatus').classList.add('connected');
+        wifiStatusText.textContent = `Connected to: ${data.ssid} (${data.ip})`;
+        
+        // Update SSID field
+        document.getElementById('ssid').value = data.ssid;
+      } else {
+        // Check if we're in AP mode
+        if (data.apMode) {
+          wifiStatusText.textContent = `AP Mode active. Connect devices to "${data.apName}" WiFi network.`;
+          document.getElementById('apModeInfo').style.display = 'block';
+          document.getElementById('apModeIP').textContent = data.ip || '192.168.4.1';
+        } else {
+          openWifiBtn.classList.remove('connected');
+          document.getElementById('wifiStatus').classList.remove('connected');
+          wifiStatusText.textContent = 'Disconnected';
+        }
+      }
+      
+      // Update Home Assistant status
+      haConnected = data.haEnabled;
+      if (haConnected) {
+        openHaBtn.classList.add('connected');
+        document.getElementById('haStatus').classList.add('connected');
+        haStatusText.textContent = `Connected to: ${data.haIp}`;
+        
+        // Update Home Assistant fields
+        document.getElementById('ha_ip').value = data.haIp;
+        document.getElementById('ha_port').value = data.haPort;
+        document.getElementById('ha_token').value = data.haToken || '';
+      } else {
+        openHaBtn.classList.remove('connected');
+        document.getElementById('haStatus').classList.remove('connected');
+        haStatusText.textContent = 'Disconnected';
+      }
+    })
+    .catch(err => {
+      console.error("Error fetching connection status:", err);
+      // If we can't fetch the status, assume we're disconnected
+      wifiConnected = false;
+      haConnected = false;
+    });
+}
+
+/**
+ * Scan for available WiFi networks
+ */
+function scanNetworks() {
+  const networksDiv = document.getElementById('networks');
+  networksDiv.innerHTML = '<p>Scanning...</p>';
+  
+  fetch('/scan-networks')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      networksDiv.innerHTML = '';
+      
+      if (!data.networks || data.networks.length === 0) {
+        networksDiv.innerHTML = '<p>No networks found</p>';
+        return;
+      }
+      
+      // Sort networks by signal strength
+      data.networks.sort((a, b) => b.rssi - a.rssi);
+      
+      data.networks.forEach(network => {
+        const div = document.createElement('div');
+        div.className = 'network';
+        
+        // Add signal strength indicator
+        const signalStrength = Math.min(Math.max(Math.abs(network.rssi) - 30, 0) / 25, 4);
+        const strengthClass = 'strength strength-' + Math.ceil(4 - signalStrength);
+        
+        div.innerHTML = network.ssid + 
+            '<span class="' + strengthClass + '">' + 
+            (network.secure ? '🔒' : '') + 
+            ' ' + network.rssi + 'dBm</span>';
+        
+        div.onclick = function() {
+          document.getElementById('ssid').value = network.ssid;
+          document.getElementById('password').focus();
+        };
+        
+        networksDiv.appendChild(div);
+      });
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      networksDiv.innerHTML = '<p>Error scanning networks: ' + error.message + '</p>';
+    });
+}
+
+/**
+ * Save WiFi configuration
+ */
+function saveWifiConfig() {
+  const ssid = document.getElementById('ssid').value.trim();
+  const password = document.getElementById('password').value;
+  
+  if (!ssid) {
+    alert('Please enter a WiFi network name (SSID)');
+    return;
+  }
+  
+  // Show connection status modal
+  statusModal.style.display = 'block';
+  document.getElementById('statusMessage').textContent = 'Connecting to WiFi...';
+  document.getElementById('statusDetails').textContent = 'The device will restart after connecting. You may need to reconnect to your regular network.';
+  
+  // Prepare form data
+  const formData = new FormData();
+  formData.append('ssid', ssid);
+  formData.append('password', password);
+  
+  // Send to server
+  fetch('/save-wifi', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.text();
+  })
+  .then(data => {
+    console.log('Success:', data);
+    // Connection successful - the device will restart
+    // We don't need to close the modal as the page will reload
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Failed to connect to WiFi: ' + error.message);
+    statusModal.style.display = 'none';
+  });
+}
+
+/**
+ * Save Home Assistant configuration
+ */
+function saveHaConfig() {
+  const haIp = document.getElementById('ha_ip').value.trim();
+  const haPort = document.getElementById('ha_port').value;
+  const haToken = document.getElementById('ha_token').value;
+  
+  if (!haIp) {
+    alert('Please enter the Home Assistant IP address or hostname');
+    return;
+  }
+  
+  if (!haToken) {
+    alert('Please enter a Long-lived Access Token');
+    return;
+  }
+  
+  // Prepare form data
+  const formData = new FormData();
+  formData.append('ha_ip', haIp);
+  formData.append('ha_port', haPort);
+  formData.append('ha_token', haToken);
+  
+  // Send to server
+  fetch('/save-ha', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.text();
+  })
+  .then(data => {
+    console.log('Success:', data);
+    alert('Home Assistant configuration saved successfully');
+    
+    // Update status
+    haConnected = true;
+    openHaBtn.classList.add('connected');
+    document.getElementById('haStatus').classList.add('connected');
+    haStatusText.textContent = `Connected to: ${haIp}`;
+    
+    // Close modal
+    haModal.style.display = 'none';
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Failed to save Home Assistant configuration: ' + error.message);
+  });
+}
+
+/**
+ * Toggle WiFi password visibility
+ */
+function togglePasswordVisibility() {
+  const passwordField = document.getElementById('password');
+  const passwordIcon = document.getElementById('password-icon');
+  
+  if (passwordField.type === 'password') {
+    passwordField.type = 'text';
+    passwordIcon.textContent = '👁️‍🗨️';  // Closed eye icon
+  } else {
+    passwordField.type = 'password';
+    passwordIcon.textContent = '👁️';  // Open eye icon
+  }
+}
+
+/**
+ * Toggle Home Assistant token visibility
+ */
+function toggleTokenVisibility() {
+  const tokenField = document.getElementById('ha_token');
+  const tokenIcon = document.getElementById('token-icon');
+  
+  if (tokenField.type === 'password') {
+    tokenField.type = 'text';
+    tokenIcon.textContent = '👁️‍🗨️';  // Closed eye icon
+  } else {
+    tokenField.type = 'password';
+    tokenIcon.textContent = '👁️';  // Open eye icon
+  }
+}
+
+/**
+ * Initialize WiFi and Home Assistant UI elements
+ */
+function initConnectionUI() {
+  // WiFi modal elements
+  openWifiBtn = document.getElementById('openWifiBtn');
+  closeWifiBtn = document.getElementById('closeWifiBtn');
+  wifiModal = document.getElementById('wifiModal');
+  wifiScanBtn = document.getElementById('wifiScanBtn');
+  wifiSaveBtn = document.getElementById('wifiSaveBtn');
+  wifiForm = document.getElementById('wifiForm');
+  wifiStatusText = document.getElementById('wifiStatusText');
+  
+  // Home Assistant modal elements
+  openHaBtn = document.getElementById('openHaBtn');
+  closeHaBtn = document.getElementById('closeHaBtn');
+  haModal = document.getElementById('haModal');
+  haSaveBtn = document.getElementById('haSaveBtn');
+  haForm = document.getElementById('haForm');
+  haStatusText = document.getElementById('haStatusText');
+  
+  // Status modal
+  statusModal = document.getElementById('statusModal');
+  
+  // WiFi modal event listeners
+  openWifiBtn.addEventListener('click', () => {
+    wifiModal.style.display = 'block';
+  });
+  
+  closeWifiBtn.addEventListener('click', () => {
+    wifiModal.style.display = 'none';
+  });
+  
+  wifiScanBtn.addEventListener('click', scanNetworks);
+  wifiSaveBtn.addEventListener('click', saveWifiConfig);
+  
+  // Home Assistant modal event listeners
+  openHaBtn.addEventListener('click', () => {
+    haModal.style.display = 'block';
+  });
+  
+  closeHaBtn.addEventListener('click', () => {
+    haModal.style.display = 'none';
+  });
+  
+  haSaveBtn.addEventListener('click', saveHaConfig);
+  
+  // Close modals when clicking outside
+  window.addEventListener('click', (event) => {
+    if (event.target == wifiModal) {
+      wifiModal.style.display = 'none';
+    }
+    if (event.target == haModal) {
+      haModal.style.display = 'none';
+    }
+    // Don't close status modal by clicking outside
+  });
+  
+  // Initialize connection status
+  initConnectionStatus();
+}

@@ -20,10 +20,22 @@
     <!-- Mode selection buttons -->
     <button id="classicBtn" onclick="setClassic()">Classic</button>
     <button id="extensionBtn" onclick="setExtension()">Extension</button>
+    
     <!-- Settings button with gear icon -->
-    <button class="gear-button" id="openSettingsBtn">
+    <button class="icon-button" id="openSettingsBtn">
       <i class="fas fa-cog"></i>
     </button>
+    
+    <!-- WiFi configuration button -->
+    <button class="icon-button" id="openWifiBtn">
+      <i class="fas fa-wifi"></i>
+    </button>
+    
+    <!-- Home Assistant configuration button -->
+    <button class="icon-button" id="openHaBtn">
+      <i class="fas fa-home"></i>
+    </button>
+    
     <!-- Dice roll button (hidden initially, shown during gameplay) -->
     <button id="diceRollButton" class="dice-roll-btn" style="display:none;" onclick="rollDice()">
       <i class="fa-solid fa-dice"></i>
@@ -111,6 +123,89 @@
       <button class="close-btn" id="closeSettingsBtn">Close</button>
     </div>
   </div>
+
+  <!-- WiFi Configuration Modal -->
+  <div id="wifiModal" class="modal">
+    <div class="modal-content">
+      <h2>WiFi Configuration</h2>
+      <div id="wifiStatus" class="status-indicator">
+        <span id="wifiStatusText">Disconnected</span>
+      </div>
+
+      <!-- Wifi Scan Button -->
+      <button class="scan-btn" id="wifiScanBtn">Scan for Networks</button>
+      <div id="networksContainer" class="networks-container">
+        <div id="networks"></div>
+      </div>
+
+      <div id="apModeInfo" class="ap-mode-info" style="display: none;">
+        <div class="info-box">
+          <h3>Access Point Mode Active</h3>
+          <p>Your Smart Catan is currently in Access Point mode.</p>
+          <p>You can directly access it at: <span class="highlight">http://<span id="apModeIP">192.168.4.1</span></span></p>
+          <p>Use the form below to connect to your home WiFi network.</p>
+        </div>
+      </div>
+      
+      <!-- WiFi Credentials Form -->
+      <form id="wifiForm">
+        <label for="ssid">WiFi Name (SSID):</label>
+        <input type="text" id="ssid" name="ssid" required>
+        
+        <label for="password">WiFi Password:</label>
+        <div class="password-container">
+          <input type="password" id="password" name="password">
+          <button type="button" class="show-password-btn" onclick="togglePasswordVisibility()">
+            <span id="password-icon">👁️</span>
+          </button>
+        </div>
+        
+        <button type="button" id="wifiSaveBtn" class="save-btn">Save & Connect</button>
+      </form>
+      
+      <button class="close-btn" id="closeWifiBtn">Close</button>
+    </div>
+  </div>
+
+  <!-- Home Assistant Configuration Modal -->
+  <div id="haModal" class="modal">
+    <div class="modal-content">
+      <h2>Home Assistant Configuration</h2>
+      <div id="haStatus" class="status-indicator">
+        <span id="haStatusText">Disconnected</span>
+      </div>
+      
+      <form id="haForm">
+        <label for="ha_ip">Home Assistant IP/Hostname:</label>
+        <input type="text" id="ha_ip" name="ha_ip" placeholder="e.g., 192.168.1.100 or homeassistant.local">
+        
+        <label for="ha_port">Port:</label>
+        <input type="number" id="ha_port" name="ha_port" value="8123">
+        
+        <label for="ha_token">Long-lived Access Token:</label>
+        <div class="password-container">
+          <input type="password" id="ha_token" name="ha_token">
+          <button type="button" class="show-password-btn" onclick="toggleTokenVisibility()">
+            <span id="token-icon">👁️</span>
+          </button>
+        </div>
+        
+        <button type="button" id="haSaveBtn" class="save-btn">Save Configuration</button>
+      </form>
+      
+      <button class="close-btn" id="closeHaBtn">Close</button>
+    </div>
+  </div>
+
+  <!-- Connection Status Dialog (appears briefly when connecting) -->
+  <div id="statusModal" class="modal">
+    <div class="modal-content status-content">
+      <div class="status-spinner"></div>
+      <h2 id="statusMessage">Connecting to WiFi...</h2>
+      <p id="statusDetails">This may take a few moments. The device will restart after connecting.</p>
+    </div>
+  </div>
+
   <!-- Include the JavaScript file -->
   <script src="/js/scripts.js"></script>
 </body>

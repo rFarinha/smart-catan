@@ -348,3 +348,222 @@ button:disabled {
   cursor: not-allowed;
   /* shows a not-allowed cursor */
 }
+
+/* Unified styling for icon buttons */
+.icon-button {
+  background-color: #990000;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  font-size: 16px;
+  color: #fff;
+  margin: 0 2px;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.icon-button:hover {
+  background-color: #7a0000;
+}
+
+/* Connected state styling */
+.icon-button.connected {
+  background-color: #28a745;
+}
+
+.icon-button.connected:hover {
+  background-color: #218838;
+}
+
+/* Status indicator for connection state */
+.status-indicator {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+  border-left: 4px solid #dc3545;
+}
+
+.status-indicator.connected {
+  border-left-color: #28a745;
+}
+
+.status-indicator::before {
+  content: "•";
+  font-size: 24px;
+  margin-right: 8px;
+  color: #dc3545;
+}
+
+.status-indicator.connected::before {
+  color: #28a745;
+}
+
+/* Networks container with scrollable list */
+.networks-container {
+  margin-top: 10px;
+  margin-bottom: 15px;
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+#networks {
+  padding: 5px;
+}
+
+/* Network list item styling */
+.network {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.network:hover {
+  background: #f5f5f5;
+}
+
+.network:last-child {
+  border-bottom: none;
+}
+
+/* Scan button */
+.scan-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.scan-btn:hover {
+  background: #5a6268;
+}
+
+/* WiFi strength indicator */
+.strength {
+  float: right;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+  color: white;
+}
+
+.strength-1 { background: #d9534f; }
+.strength-2 { background: #f0ad4e; }
+.strength-3 { background: #5bc0de; }
+.strength-4 { background: #5cb85c; }
+
+/* Password field container for side-by-side layout */
+.password-container {
+  display: flex;
+  margin-top: 5px;
+  margin-bottom: 15px;
+}
+
+.password-container input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-right: none;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-radius: 4px 0 0 4px;
+}
+
+/* Show password button */
+.show-password-btn {
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-left: none;
+  cursor: pointer;
+  padding: 0 15px;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+  font-size: 16px;
+}
+
+.show-password-btn:hover {
+  background: #e0e0e0;
+}
+
+/* Save button */
+.save-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  margin-top: 20px;
+  margin-bottom: 15px;
+  cursor: pointer;
+  font-weight: bold;
+  width: 100%;
+}
+
+.save-btn:hover {
+  background: #218838;
+}
+
+/* Status spinner for connection modal */
+.status-content {
+  text-align: center;
+}
+
+.status-spinner {
+  display: inline-block;
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #3498db;
+  border-radius: 50%;
+  animation: spin 2s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Form input styling */
+form label {
+  display: block;
+  margin-top: 15px;
+  font-weight: bold;
+}
+
+form input[type="text"],
+form input[type="password"],
+form input[type="number"] {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.ap-mode-info {
+  margin-bottom: 20px;
+}
+
+.info-box {
+  background-color: #f8f9fa;
+  border-left: 4px solid #17a2b8;
+  padding: 15px;
+  border-radius: 4px;
+}
+
+.highlight {
+  font-weight: bold;
+  padding: 2px 5px;
+  background-color: #e9ecef;
+  border-radius: 3px;
+}
