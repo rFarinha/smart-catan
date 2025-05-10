@@ -67,10 +67,6 @@ String htmlPage;      // Stores the HTML content
 Board board;             // Current board layout
 BoardConfig boardConfig; // Board configuration settings
 
-// DNS Server
-DNSServer dnsServer;
-const byte DNS_PORT = 53; // Standard DNS port
-
 //---------------------------------------------------------------
 //                 UTILITY FUNCTIONS
 //---------------------------------------------------------------
@@ -615,29 +611,7 @@ void handleSaveHA() {
 }
 
 void handleNotFound() {
-    if (wifiManager.isInApMode()) {
-        Serial.print("Captive portal request: ");
-        Serial.print(server.hostHeader());
-        Serial.print(" ");
-        Serial.println(server.uri());
-        
-        // iOS devices check for captive portals by requesting this specific host
-        if (server.hostHeader() == "captive.apple.com") {
-            // For iOS, we need to respond with a 200 OK and specific content
-            server.send(200, "text/html", "<!DOCTYPE html><html><head><title>Success</title></head><body>Success</body></html>");
-            return;
-        }
-        
-        // For all other requests to hosts that aren't our IP, redirect to our main page
-        if (server.hostHeader() != WiFi.softAPIP().toString()) {
-            String redirectURL = "http://" + WiFi.softAPIP().toString();
-            server.sendHeader("Location", redirectURL, true);
-            server.send(302, "text/plain", "");
-            return;
-        }
-    }
-    
-    // For other 404 cases, return a standard 404 message
+    // Simply return a standard 404 response
     server.send(404, "text/plain", "Not Found");
 }
 
@@ -800,25 +774,15 @@ void setup()
 
   // Initialize the WiFi manager
   wifiManager.begin();
-
-  // Start DNS server for captive portal if in AP mode
-  if (wifiManager.isInApMode()) {
-      // Initialize the DNS server to redirect all domains to our IP
-      IPAddress apIP = WiFi.softAPIP();
-      dnsServer.start(DNS_PORT, "*", apIP);
-      Serial.println("DNS server started for captive portal");
-      Serial.print("AP IP address: ");
-      Serial.println(apIP);
-      Serial.print("AP SSID: ");
-      Serial.println(AP_NAME);
+  
+  // Always start mDNS regardless of connection mode
+  if (!MDNS.begin("smartcatan")) {
+      Serial.println("Error setting up MDNS responder!");
   } else {
-      // Only attempt mDNS when in station mode
-      if (!MDNS.begin("smartcatan")) {
-          Serial.println("Error setting up MDNS responder!");
-      } else {
-          Serial.println("mDNS responder started");
-      }
-    }
+      Serial.println("mDNS responder started at smartcatan.local");
+      // Add HTTP service to mDNS - this helps with discovery
+      MDNS.addService("http", "tcp", 80);
+  }
 
   // Clear the HTML page string before loading to prevent duplication  
   htmlPage = "";
@@ -906,26 +870,7 @@ void setup()
   server.on("/save-wifi", HTTP_POST, handleSaveWifi);
   server.on("/save-ha", HTTP_POST, handleSaveHA);
   server.on("/board", HTTP_GET, handleBoard);
-  server.on("/generate_204", handleRoot);  // Android
-  server.on("/gen_204", handleRoot);       // Android
-  server.on("/ncsi.txt", handleRoot);      // Windows
-  server.on("/hotspot-detect.html", HTTP_GET, []() {
-  server.send(200, "text/html", "<!DOCTYPE html><html><head><title>Success</title></head><body>Success</body></html>");
-});
 
-server.on("/library/test/success.html", HTTP_GET, []() {
-  server.send(200, "text/html", "<!DOCTYPE html><html><head><title>Success</title></head><body>Success</body></html>");
-});
-
-// Add this specific handler for captive.apple.com
-server.on("/", HTTP_GET, []() {
-  if (server.hostHeader() == "captive.apple.com") {
-    server.send(200, "text/html", "<!DOCTYPE html><html><head><title>Success</title></head><body>Success</body></html>");
-  } else {
-    handleRoot(); // Your regular root handler
-  }
-});
-  server.on("/connecttest.txt", handleRoot); // Windows
   server.onNotFound(handleNotFound);
 
   // Generate a new board if none was loaded
@@ -960,15 +905,6 @@ server.on("/", HTTP_GET, []() {
  * Handles web server client requests
  */
 void loop() {
-    // Process DNS requests if in AP mode
-    if (wifiManager.isInApMode()) {
-        // Handle DNS requests - this is critical for captive portal
-        dnsServer.processNextRequest();
-        
-        // Add a small delay to prevent CPU hogging
-        delay(1);
-    }
-
-    // Always handle web server requests
+    // Handle web server requests
     server.handleClient();
 }
