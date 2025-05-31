@@ -26,6 +26,20 @@ void connectWifi(const char *WIFI_SSID, const char *WIFI_PASS)
     Serial.println("\nWiFi connected!");
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
+    Serial.print("MAC Address: ");
+    Serial.println(WiFi.macAddress());
+    Serial.print("Signal Strength: ");
+    Serial.print(WiFi.RSSI());
+    Serial.println(" dBm");
+    Serial.println("DNS Address: ");
+    Serial.print(WiFi.dnsIP());
+    Serial.println("Gateway Address: ");
+    Serial.print(WiFi.gatewayIP());
+    Serial.println("Subnet Mask: ");
+    Serial.print(WiFi.subnetMask());
+    Serial.println("Hostname: ");
+    Serial.print(WiFi.getHostname());
+    Serial.println(""); // Print a blank line for better readability
 }
 
 /**

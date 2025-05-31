@@ -119,7 +119,16 @@ void LedController::turnTileOn(uint16_t tile, uint32_t color)
 
     if (strip != nullptr)
     {
+        // Log the tile and LED index for debugging
+        Serial.print("Turning on tile ");
+        Serial.print(tile);
+        Serial.print(" at LED index ");
+        Serial.println(ledIndex);
+        Serial.print("Color: ");
+        Serial.println(color, HEX);
+        // Set the color for the specified LED index
         strip->setPixelColor(ledIndex, color);
+
     }
 }
 
