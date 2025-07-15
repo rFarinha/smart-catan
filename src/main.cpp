@@ -140,9 +140,15 @@ String generateJSON()
 
   // Add the numbers array
   JsonArray numbers = doc["numbers"].to<JsonArray>();
+  JsonArray rolledResourceTypes = doc["rolledresourceTypes"].to<JsonArray>();
   for (int i = 0; i < ledNumber; i++)
   {
     numbers.add(board.numbers[i]);
+    if ( board.numbers[i] == selectedNumber )
+    {
+      // Add the resource type for the selected number
+      rolledResourceTypes.add(board.resources[i]);
+    }
   }
 
   // Include the game mode and state flags
@@ -528,7 +534,30 @@ void turnOnNumber()
 
   // Trigger Home Assistant with the selected number
 #ifdef ENABLE_HOME_ASSISTANT
-  triggerHomeAssistantScript(selectedNumber);
+  // Create a vector of resource types based on the selected number
+  std::vector<int> resourceTypes;
+
+  // Generate JSON board data
+
+  String jsonData = generateJSON();
+  // Parse the JSON to extract the rolledResourceTypes
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, jsonData);  
+  if (error)
+  {
+    Serial.print("Failed to parse JSON: ");
+    Serial.println(error.f_str());
+    return;
+  }
+
+  JsonArray rolledResourceTypes = doc["rolledresourceTypes"].as<JsonArray>();
+  for (JsonVariant v : rolledResourceTypes)
+  {
+    int resourceType = v.as<int>();
+    resourceTypes.push_back(resourceType);
+  }
+  
+  triggerHomeAssistantScript(selectedNumber, resourceTypes);
 #endif
 
   // Turn off all LEDs before applying new state

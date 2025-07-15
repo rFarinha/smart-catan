@@ -217,6 +217,305 @@ This automation will:
 - Turn the lights green when 6 or 8 (highest probability) is rolled
 - Turn the lights blue for all other numbers
 
+### Extended Automation
+```yaml
+alias: Catan
+description: Change lights based on Catan dice number and resources selected.
+triggers:
+  - webhook_id: esp32_number
+    trigger: webhook
+    allowed_methods:
+      - POST
+      - PUT
+    local_only: true
+conditions: []
+actions:
+  - action: scene.create
+    metadata: {}
+    data:
+      snapshot_entities:
+        - media_player.sonos_keuken
+        - light.ledpaneel_woonkamer_achter
+      scene_id: catan_entities_restore
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.json.selectedNumber != 7 }}"
+            alias: Not Robber
+        sequence:
+          - repeat:
+              sequence:
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{repeat.item == \"sheep\"}}"
+                      sequence:
+                        - data:
+                            brightness_pct: 65
+                            rgbww_color:
+                              - 185
+                              - 255
+                              - 35
+                              - 100
+                              - 50
+                          action: light.turn_on
+                          target:
+                            entity_id: light.ledpaneel_woonkamer_achter
+                        - action: media_player.volume_set
+                          metadata: {}
+                          data:
+                            volume_level: 0.4
+                          target:
+                            entity_id: media_player.sonos_keuken
+                        - action: media_player.play_media
+                          target:
+                            entity_id: media_player.sonos_keuken
+                          data:
+                            media_content_id: media-source://media_source/local/catan-sheep.mp3
+                            media_content_type: audio/mpeg
+                          metadata:
+                            title: catan-sheep.mp3
+                            thumbnail: null
+                            media_class: music
+                            children_media_class: null
+                            navigateIds:
+                              - {}
+                              - media_content_type: app
+                                media_content_id: media-source://media_source
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 2
+                            milliseconds: 0
+                      alias: Sheep
+                    - conditions:
+                        - condition: template
+                          value_template: "{{repeat.item == \"wood\"}}"
+                      sequence:
+                        - data:
+                            rgbww_color:
+                              - 0
+                              - 255
+                              - 0
+                              - 0
+                              - 0
+                            brightness_pct: 35
+                          action: light.turn_on
+                          target:
+                            entity_id: light.ledpaneel_woonkamer_achter
+                        - action: media_player.volume_set
+                          metadata: {}
+                          data:
+                            volume_level: 0.4
+                          target:
+                            entity_id: media_player.sonos_keuken
+                        - action: media_player.play_media
+                          target:
+                            entity_id: media_player.sonos_keuken
+                          data:
+                            media_content_id: media-source://media_source/local/catan-wood.mp3
+                            media_content_type: audio/mpeg
+                          metadata:
+                            title: catan-wood.mp3
+                            thumbnail: null
+                            media_class: music
+                            children_media_class: null
+                            navigateIds:
+                              - {}
+                              - media_content_type: app
+                                media_content_id: media-source://media_source
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 2
+                            milliseconds: 0
+                      alias: Wood
+                    - conditions:
+                        - condition: template
+                          value_template: "{{repeat.item == \"wheat\"}}"
+                      sequence:
+                        - data:
+                            brightness_pct: 100
+                            rgbww_color:
+                              - 255
+                              - 170
+                              - 0
+                              - 0
+                              - 0
+                          action: light.turn_on
+                          target:
+                            entity_id: light.ledpaneel_woonkamer_achter
+                        - action: media_player.volume_set
+                          metadata: {}
+                          data:
+                            volume_level: 0.4
+                          target:
+                            entity_id: media_player.sonos_keuken
+                        - action: media_player.play_media
+                          target:
+                            entity_id: media_player.sonos_keuken
+                          data:
+                            media_content_id: media-source://media_source/local/catan-cow.mp3
+                            media_content_type: audio/mpeg
+                          metadata:
+                            title: catan-cow.mp3
+                            thumbnail: null
+                            media_class: music
+                            children_media_class: null
+                            navigateIds:
+                              - {}
+                              - media_content_type: app
+                                media_content_id: media-source://media_source
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 5
+                            milliseconds: 0
+                      alias: Wheat
+                    - conditions:
+                        - condition: template
+                          value_template: "{{repeat.item == \"brick\"}}"
+                      sequence:
+                        - data:
+                            rgb_color:
+                              - 230
+                              - 97
+                              - 0
+                            brightness_pct: 100
+                          action: light.turn_on
+                          target:
+                            entity_id: light.ledpaneel_woonkamer_achter
+                        - action: media_player.volume_set
+                          metadata: {}
+                          data:
+                            volume_level: 0.9
+                          target:
+                            entity_id: media_player.sonos_keuken
+                        - action: media_player.play_media
+                          target:
+                            entity_id: media_player.sonos_keuken
+                          data:
+                            media_content_id: media-source://media_source/local/catan-brick2.mp3
+                            media_content_type: audio/mpeg
+                          metadata:
+                            title: catan-brick2.mp3
+                            thumbnail: null
+                            media_class: music
+                            children_media_class: null
+                            navigateIds:
+                              - {}
+                              - media_content_type: app
+                                media_content_id: media-source://media_source
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 6
+                            milliseconds: 0
+                      alias: Brick
+                    - conditions:
+                        - condition: template
+                          value_template: "{{repeat.item == \"ore\"}}"
+                      sequence:
+                        - data:
+                            brightness_pct: 80
+                            rgbww_color:
+                              - 147
+                              - 50
+                              - 255
+                              - 100
+                              - 50
+                          action: light.turn_on
+                          target:
+                            entity_id: light.ledpaneel_woonkamer_achter
+                        - action: media_player.volume_set
+                          metadata: {}
+                          data:
+                            volume_level: 0.4
+                          target:
+                            entity_id: media_player.sonos_keuken
+                        - action: media_player.play_media
+                          target:
+                            entity_id: media_player.sonos_keuken
+                          data:
+                            media_content_id: media-source://media_source/local/catan-ore.mp3
+                            media_content_type: audio/mpeg
+                          metadata:
+                            title: catan-ore.mp3
+                            thumbnail: null
+                            media_class: music
+                            children_media_class: null
+                            navigateIds:
+                              - {}
+                              - media_content_type: app
+                                media_content_id: media-source://media_source
+                        - delay:
+                            hours: 0
+                            minutes: 0
+                            seconds: 2
+                            milliseconds: 0
+                      alias: Ore
+              for_each: "{{ trigger.json.resourceTypes }}"
+        alias: Not Robber
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.json.selectedNumber == 7 }}"
+            alias: Robber
+        sequence:
+          - data:
+              rgb_color:
+                - 255
+                - 0
+                - 0
+              brightness_pct: 100
+            action: light.turn_on
+            target:
+              entity_id: light.ledpaneel_woonkamer_achter
+          - action: media_player.volume_set
+            metadata: {}
+            data:
+              volume_level: 0.4
+            target:
+              entity_id: media_player.sonos_keuken
+          - action: media_player.play_media
+            target:
+              entity_id: media_player.sonos_keuken
+            data:
+              media_content_id: media-source://media_source/local/dragon-growl-37570.mp3
+              media_content_type: audio/mpeg
+            metadata:
+              title: dragon-growl-37570.mp3
+              thumbnail: null
+              media_class: music
+              children_media_class: null
+              navigateIds:
+                - {}
+                - media_content_type: app
+                  media_content_id: media-source://media_source
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 2
+              milliseconds: 0
+        alias: Robber
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 8
+      milliseconds: 0
+  - action: scene.turn_on
+    metadata: {}
+    data:
+      entity_id: scene.catan_entities_restore
+mode: single
+```
+This automation will:
+- Save the current state of the lights and media player to a temporary scene
+- Change the lights and play sounds based on the resource types selected. For example, it will turn the lights light green for sheep, dark green for wood, yellow for wheat, orange for brick, and purple for ore.
+- If the robber (7) is rolled, it will turn the lights red and play a dragon growl sound.
+
+Tip: I found sounds and music on [freesound.org](https://freesound.org/) and [zapsplat.com](https://www.zapsplat.com/). You can use any sound you like, just make sure to update the file paths in the automation.
+
+
 ## Customization
 
 - To change the GPIO pin for the LED strip, modify `LED_STRIP_PIN` in `main.cpp`

@@ -14,6 +14,7 @@
 #define HOME_ASSISTANT_TRIGGER_H
 
 #include <Arduino.h>
+#include <vector>
 
 // When ENABLE_HOME_ASSISTANT is defined, include the real implementation.
 // Otherwise, provide dummy (inline) functions to maintain API compatibility.
@@ -41,7 +42,7 @@ void initHomeAssistant(const char *host, uint16_t port, const char *apiKey, cons
  *
  * @param selectedNumber The dice number that was selected (2-12, or 7 for robber)
  */
-void triggerHomeAssistantScript(int selectedNumber);
+void triggerHomeAssistantScript(int selectedNumber, std::vector<int> resourceTypes);
 
 #else // If Home Assistant integration is disabled, provide stub implementations
 
@@ -62,7 +63,7 @@ inline void initHomeAssistant(const char *host, uint16_t port, const char *apiKe
  * This empty implementation maintains API compatibility when
  * the ENABLE_HOME_ASSISTANT flag is not defined.
  */
-inline void triggerHomeAssistantScript(int selectedNumber)
+inline void triggerHomeAssistantScript(int selectedNumber, std::vector<int> resourceTypes)
 {
     // Do nothing when Home Assistant integration is disabled
 }
