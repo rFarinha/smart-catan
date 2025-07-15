@@ -57,11 +57,11 @@ void initHomeAssistant(const char *host, uint16_t port, const char *apiKey, cons
  *
  * @param selectedNumber The dice number that was selected (2-12, or 7 for robber)
  */
-void triggerHomeAssistantScript(int selectedNumber)
+void triggerHomeAssistantScript(int selectedNumber, std::vector<int> resourceTypes)
 {
     HTTPClient http;
 
-    // Construct the URL for the Home Assistant webhook
+    // Determine
     // This uses a webhook endpoint called "esp32_number"
     String url = "http://" + _haHost + ":" + String(_haPort) + "/api/webhook/esp32_number";
 
@@ -72,9 +72,56 @@ void triggerHomeAssistantScript(int selectedNumber)
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Authorization", "Bearer " + _haApiKey);
 
-    // Create a simple JSON payload with the selected number
-    String payload = "{\"selectedNumber\": " + String(selectedNumber) + "}";
+    // Create a JSON payload with the selected number and resource types
+    String payload = "{\"selectedNumber\": " + String(selectedNumber) + ", \"resourceTypes\": [";
 
+    // Convert the resource types to a string and append to the payload
+    // sheep (0), wood (1), wheat (2), brick (3), ore (4), desert (5)
+
+    for (int i = 0; i < resourceTypes.size(); i++)
+    {
+        // Validate resource type
+        if (resourceTypes[i] < 0 || resourceTypes[i] > 5)
+        {
+            Serial.printf("Invalid resource type %d at index %d\n", resourceTypes[i], i);
+            return; // Invalid resource type, abort the request
+        }
+        // Append the resource type to the payload
+        else if (resourceTypes[i] == 0)
+        {
+            payload += "\"sheep\"";
+        }
+        else if (resourceTypes[i] == 1)
+        {
+            payload += "\"wood\"";
+        }
+        else if (resourceTypes[i] == 2)
+        {
+            payload += "\"wheat\"";
+        }
+        else if (resourceTypes[i] == 3)
+        {
+            payload += "\"brick\"";
+        }
+        else if (resourceTypes[i] == 4)
+        {
+            payload += "\"ore\"";
+        }
+        else if (resourceTypes[i] == 5)
+        {
+            payload += "\"desert\"";
+        }
+        // Add a comma if this is not the last resource type
+        if (i < resourceTypes.size() - 1)
+        {
+            payload += ", ";
+        }
+    }
+
+    payload += "]}"; // Close the JSON array and object
+
+    Serial.printf("Triggering HomeAssistant with payload: %s\n", payload.c_str());
+    
     // Send the POST request
     int httpResponseCode = http.POST(payload);
 
